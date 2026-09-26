@@ -1,0 +1,139 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { api, clearAccessToken, AuthUser } from "@/lib/api";
+
+const NAV = [
+  { href: "/", icon: "dashboard", label: "Dashboard" },
+  { href: "/organizations", icon: "account_balance", label: "Organizations" },
+  { href: "/leads", icon: "bolt", label: "Lead Feed" },
+  { href: "/blog-admin", icon: "article", label: "Blog & Human Approval" },
+  { href: "/marketing-hub", icon: "insights", label: "Keyword & Ad Monitor" },
+  { href: "/blog", icon: "language", label: "Public Blog Hub" },
+];
+
+export default function Sidebar() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const [user, setUser] = useState<AuthUser | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    api.auth
+      .me()
+      .then((u) => {
+        if (active) setUser(u);
+      })
+      .catch(() => {
+        // Not authenticated yet; leave the user block empty.
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleSignOut = () => {
+    clearAccessToken();
+    router.push("/login");
+  };
+
+  return (
+    <aside className="sidebar">
+      {/* Logo */}
+      <div className="p-5 border-b" style={{ borderColor: "var(--border)" }}>
+        <div className="flex items-center gap-3">
+          <img
+            src="/mugologo_t.png"
+            alt="Mugogo Inc. logo"
+            className="w-10 h-10 rounded-xl object-cover"
+          />
+          <div>
+            <div className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+              Mugogo Inc.
+            </div>
+            <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+              Engine v1.0
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-3 space-y-1">
+        <div
+          className="text-xs font-semibold uppercase tracking-widest px-3 pt-3 pb-2"
+          style={{ color: "var(--text-muted)" }}
+        >
+          Operations
+        </div>
+        {NAV.map((item) => {
+          const active =
+            item.href === "/"
+              ? pathname === "/"
+              : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`nav-item${active ? " active" : ""}`}
+            >
+              <span className="material-symbols-outlined text-base leading-none">
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+        {user?.role === "SUPER_ADMIN" && (
+          <Link
+            href="/users"
+            className={`nav-item${pathname.startsWith("/users") ? " active" : ""}`}
+          >
+            <span className="material-symbols-outlined text-base leading-none">
+              group
+            </span>
+            <span>Team Management</span>
+          </Link>
+        )}
+      </nav>
+
+      {/* Logout */}
+      <div className="p-3">
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="nav-item w-full text-left text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors"
+          style={{ color: "#ef4444" }}
+        >
+          <span className="material-symbols-outlined text-base leading-none">
+            logout
+          </span>
+          <span>Sign Out</span>
+        </button>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="p-4 border-t text-xs"
+        style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
+      >
+        {user && (
+          <>
+            <div className="font-semibold truncate" style={{ color: "var(--text-primary)" }}>
+              {user.name}
+            </div>
+            <div className="truncate">{user.email}</div>
+            <div className="mt-1">
+              <span className="badge badge-express">{user.role.replace(/_/g, " ")}</span>
+            </div>
+            <div className="mt-2" style={{ borderColor: "var(--border)" }} />
+          </>
+        )}
+        <div>Agent Control Panel</div>
+        <div>Kenya & East Africa</div>
+      </div>
+    </aside>
+  );
+}
