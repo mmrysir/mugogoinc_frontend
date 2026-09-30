@@ -2,7 +2,9 @@ const DEFAULT_API_BASE = "http://127.0.0.1:8000/api/v1";
 const TOKEN_STORAGE_KEY = "mugogo_access_token";
 
 function resolveApiBase(): string {
-  const configured = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
+  const configured =
+    process.env.NEXT_PUBLIC_API_URL?.trim() ||
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
   return DEFAULT_API_BASE;
 }

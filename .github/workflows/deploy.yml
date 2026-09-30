@@ -1,0 +1,48 @@
+name: Deploy Mugogo Frontend
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies & Build (CI Check)
+        env:
+          NEXT_PUBLIC_API_URL: https://api.mugogoinc.com
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy to Production Server via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            echo "--> Navigating to Frontend directory"
+            cd /var/www/mugogoinc/mugogoinc_frontend
+
+            echo "--> Pulling latest code from main"
+            git pull origin main
+
+            echo "--> Installing dependencies & Building Next.js production bundle"
+            npm ci
+            npm run build
+
+            echo "--> Restarting Next.js on Port 3002 via PM2"
+            pm2 delete mugogoinc-frontend 2>/dev/null || true
+            pm2 start npm --name "mugogoinc-frontend" --cwd "/var/www/mugogoinc/mugogoinc_frontend" -- start
+            pm2 save
