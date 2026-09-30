@@ -19,7 +19,7 @@ function KpiCard({
   accent?: string;
 }) {
   return (
-    <div className="kpi-card">
+    <div className="kpi-card shadow-md-1 hover:shadow-md-2">
       <div className="flex items-start justify-between mb-3">
         <span className="text-2xl"><Icon name={icon} size="lg" /></span>
         {sub && (
@@ -86,63 +86,72 @@ export default function DashboardPage() {
       <Sidebar />
       <main className="main-content">
         {/* Header */}
-        <div className="mb-8 animate-fade-in">
-          <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
-            Dashboard
-          </h1>
-          <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-            Real-time lead engine metrics — auto-refreshes every 15 seconds
-          </p>
-          <div className="accent-line mt-4" />
+        <div className="mb-8 animate-fade-in flex items-end justify-between">
+          <div>
+            <h1 className="text-3xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
+              Dashboard
+            </h1>
+            <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
+              Real-time engine metrics — auto-refreshes every 15s
+            </p>
+          </div>
+          <div className="text-right">
+            <span className="badge badge-active text-xs px-3 py-1 shadow-md-1">
+              Live System Active
+            </span>
+          </div>
         </div>
 
         {error && (
-          <div className="card mb-6 animate-fade-in"
+          <div className="card mb-6 animate-fade-in shadow-md-1"
             style={{ borderColor: "rgba(244,63,94,0.3)", background: "rgba(244,63,94,0.06)" }}>
-            <p className="text-sm" style={{ color: "#fb7185" }}><Icon name="warning" className="mr-2" /> {error}</p>
+            <p className="text-sm font-medium" style={{ color: "#fb7185" }}>
+              <Icon name="warning" className="mr-2" /> {error}
+            </p>
           </div>
         )}
 
         {loading && !stats && (
-          <div className="text-center py-20" style={{ color: "var(--text-muted)" }}>
-            Loading metrics...
+          <div className="flex flex-col items-center justify-center py-32" style={{ color: "var(--text-muted)" }}>
+            <span className="material-symbols-outlined text-4xl mb-4 animate-spin">refresh</span>
+            <p>Loading metrics...</p>
           </div>
         )}
 
         {stats && (
-          <>
-            {/* KPI Row */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">
-              <KpiCard icon="apartment" label="Organizations" value={stats.organizations} />
-              <KpiCard icon="place" label="Business Units" value={stats.business_units} />
+          <div className="space-y-6">
+            {/* Primary KPI Row - 4 Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
               <KpiCard icon="flash_on" label="Total Leads" value={stats.leads.total} />
-              <KpiCard
-                icon="insights"
-                label="Delivery Rate"
-                value={`${stats.leads.delivery_rate_pct}%`}
-                accent="linear-gradient(135deg,#10b981,#06b6d4)"
-              />
-            </div>
-
-            {/* Second Row */}
-            <div className="grid grid-cols-3 gap-4 mb-8 animate-fade-in">
-              <KpiCard icon="event" label="Leads Today" value={stats.leads.today} />
-              <KpiCard icon="date_range" label="This Week" value={stats.leads.this_week} />
               <KpiCard
                 icon="check_circle"
                 label="Delivered"
                 value={stats.leads.delivered}
                 accent="linear-gradient(135deg,#10b981,#34d399)"
               />
+              <KpiCard
+                icon="insights"
+                label="Delivery Rate"
+                value={`${stats.leads.delivery_rate_pct}%`}
+                accent="linear-gradient(135deg,#10b981,#06b6d4)"
+              />
+              <KpiCard icon="event" label="Leads Today" value={stats.leads.today} />
             </div>
 
-            {/* Delivery breakdown + Channels */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            {/* Secondary KPI Row - 3 Columns */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in" style={{ animationDelay: "100ms" }}>
+              <KpiCard icon="date_range" label="Leads This Week" value={stats.leads.this_week} />
+              <KpiCard icon="apartment" label="Active Organizations" value={stats.organizations} />
+              <KpiCard icon="place" label="Business Units" value={stats.business_units} />
+            </div>
+
+            {/* Charts Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-slide-up" style={{ animationDelay: "200ms" }}>
               {/* Delivery Breakdown */}
-              <div className="card animate-slide-up">
-                <h2 className="font-semibold mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  DELIVERY BREAKDOWN
-                </h2>
+              <div className="card shadow-md-1 hover:shadow-md-2">
+                <div className="flex items-center gap-2 mb-6 text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <Icon name="pie_chart" size="sm" /> Delivery Breakdown
+                </div>
                 <div className="space-y-4">
                   {[
                     { label: "Delivered", count: stats.leads.delivered, color: "#34d399" },
@@ -171,10 +180,10 @@ export default function DashboardPage() {
               </div>
 
               {/* Channel Breakdown */}
-              <div className="card animate-slide-up">
-                <h2 className="font-semibold mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                  LEAD CHANNELS
-                </h2>
+              <div className="card shadow-md-1 hover:shadow-md-2">
+                <div className="flex items-center gap-2 mb-6 text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                  <Icon name="share" size="sm" /> Lead Channels
+                </div>
                 {Object.keys(stats.channels).length === 0 ? (
                   <p className="text-sm" style={{ color: "var(--text-muted)" }}>No channel data yet</p>
                 ) : (
@@ -186,28 +195,28 @@ export default function DashboardPage() {
             </div>
 
             {/* 7-day volume */}
-            <div className="card animate-slide-up">
-              <h2 className="font-semibold mb-4 text-sm" style={{ color: "var(--text-secondary)" }}>
-                7-DAY DAILY VOLUME
-              </h2>
+            <div className="card shadow-md-1 hover:shadow-md-2 animate-slide-up" style={{ animationDelay: "300ms" }}>
+              <div className="flex items-center gap-2 mb-6 text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                <Icon name="monitoring" size="sm" /> 7-Day Daily Volume
+              </div>
               {stats.daily_volume.length === 0 ? (
                 <p className="text-sm" style={{ color: "var(--text-muted)" }}>No volume data yet</p>
               ) : (
-                <div className="flex items-end gap-2 h-20">
+                <div className="flex items-end gap-2 h-24">
                   {stats.daily_volume.map((d) => {
                     const max = Math.max(...stats.daily_volume.map((x) => x.count), 1);
                     const h = Math.max((d.count / max) * 100, 4);
                     return (
                       <div key={d.date} className="flex-1 flex flex-col items-center gap-1 group">
-                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity font-mono"
-                          style={{ color: "var(--accent-blue)", fontSize: "0.65rem" }}>
+                        <span className="text-xs opacity-0 group-hover:opacity-100 transition-opacity font-mono font-bold"
+                          style={{ color: "var(--accent-blue)", fontSize: "0.75rem" }}>
                           {d.count}
                         </span>
                         <div
-                          className="w-full rounded-t transition-all duration-500"
-                          style={{ height: `${h}%`, background: "var(--gradient-accent)", opacity: 0.8 }}
+                          className="w-full rounded-t-md transition-all duration-500 shadow-sm"
+                          style={{ height: `${h}%`, background: "var(--gradient-accent)", opacity: 0.9 }}
                         />
-                        <span className="text-xs" style={{ color: "var(--text-muted)", fontSize: "0.6rem" }}>
+                        <span className="text-xs font-medium mt-1" style={{ color: "var(--text-muted)", fontSize: "0.65rem" }}>
                           {d.date.slice(5)}
                         </span>
                       </div>
@@ -216,7 +225,7 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-          </>
+          </div>
         )}
       </main>
     </div>

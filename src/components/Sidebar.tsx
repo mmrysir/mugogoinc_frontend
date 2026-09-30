@@ -99,8 +99,24 @@ export default function Sidebar() {
         )}
       </nav>
 
-      {/* Logout */}
-      <div className="p-3">
+      {/* Logout & Theme */}
+      <div className="p-3 border-t" style={{ borderColor: "var(--border)" }}>
+        <button
+          type="button"
+          onClick={() => {
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            localStorage.setItem('mugogo-theme-app', next);
+          }}
+          className="nav-item w-full text-left transition-colors mb-2"
+        >
+          <span className="material-symbols-outlined text-base leading-none">
+            brightness_6
+          </span>
+          <span>Toggle Theme</span>
+        </button>
+
         <button
           type="button"
           onClick={handleSignOut}

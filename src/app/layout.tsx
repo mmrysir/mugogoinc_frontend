@@ -26,10 +26,22 @@ export default function RootLayout({
         <link rel="icon" href="/mugologo_t.png" type="image/png" sizes="any" />
         <link rel="apple-touch-icon" href="/mugologo_t.png" />
         <link rel="shortcut icon" href="/mugologo_t.png" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap"
-          rel="stylesheet"
-        />
+          <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap"
+            rel="stylesheet"
+          />
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function() {
+                  try {
+                    var t = localStorage.getItem('mugogo-theme-app') || 'light';
+                    document.documentElement.setAttribute('data-theme', t);
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
       </head>
       <body>
         {children}
