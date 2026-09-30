@@ -6,7 +6,12 @@ export const metadata: Metadata = {
   description:
     "Internal multi-tenant lead ingestion, routing, and monitoring dashboard for Mugogo Inc. agency operations.",
   icons: {
-    icon: "/mugologo_t.png",
+    icon: [
+      { url: "/mugologo_t.png", type: "image/png" },
+      { url: "/favicon.ico" },
+    ],
+    shortcut: "/mugologo_t.png",
+    apple: "/mugologo_t.png",
   },
 };
 
@@ -17,12 +22,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <head>
+        <link rel="icon" href="/mugologo_t.png" type="image/png" sizes="any" />
+        <link rel="apple-touch-icon" href="/mugologo_t.png" />
+        <link rel="shortcut icon" href="/mugologo_t.png" />
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght@100..700&display=swap"
           rel="stylesheet"
         />
-        <link rel="icon" href="/mugologo_t.png" type="image/png" />
+      </head>
+      <body>
         {children}
       </body>
     </html>
