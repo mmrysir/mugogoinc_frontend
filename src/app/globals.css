@@ -7,22 +7,22 @@
 
 /* ── Material Design 3 Tokens ─────────────────────────────────────────────── */
 :root {
-  /* Light Mode (Default M3) */
-  --bg-base: #FAFDFB; /* background */
-  --bg-surface: #F8FAFC; /* surface */
-  --bg-card: #FFFFFF; /* surface container low */
-  --bg-card-hover: #F1F5F9; /* surface container */
-  --bg-elevated: #E2E8F0; /* surface container high */
+  /* Light Mode (Default M3 matching Screenshot) */
+  --bg-base: #FFFFFF; /* background */
+  --bg-surface: #FFFFFF; /* surface */
+  --bg-card: #F9FAFB; /* surface container low */
+  --bg-card-hover: #F3F4F6; /* surface container */
+  --bg-elevated: #E5E7EB; /* surface container high */
 
-  --border: #E2E8F0; /* outline variant */
-  --border-accent: #0b57d0; /* primary */
+  --border: #E5E7EB; /* outline variant */
+  --border-accent: #06b6d4; /* primary cyan */
 
   --text-primary: #1F2937; /* on-surface */
-  --text-secondary: #475569; /* on-surface-variant */
-  --text-muted: #64748B; /* outline */
+  --text-secondary: #4B5563; /* on-surface-variant */
+  --text-muted: #6B7280; /* outline */
 
-  --accent-blue: #0b57d0; /* M3 primary */
-  --accent-cyan: #006874; /* M3 tertiary */
+  --accent-blue: #06b6d4; /* M3 primary (Cyan/Teal from screenshot) */
+  --accent-cyan: #0891b2; /* M3 tertiary */
   --accent-emerald: #146c2e; /* M3 success */
   --accent-amber: #b3261e; /* M3 error */
   --accent-rose: #b3261e; 
@@ -41,31 +41,29 @@
   --gradient-danger: var(--accent-amber);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark Mode (M3) */
-    --bg-base: #111114; /* background */
-    --bg-surface: #111114; /* surface */
-    --bg-card: #1e1f22; /* surface container low */
-    --bg-card-hover: #2b2c30; /* surface container */
-    --bg-elevated: #36373b; /* surface container high */
+[data-theme="dark"] {
+  /* Dark Mode (M3) */
+  --bg-base: #111114; /* background */
+  --bg-surface: #111114; /* surface */
+  --bg-card: #1e1f22; /* surface container low */
+  --bg-card-hover: #2b2c30; /* surface container */
+  --bg-elevated: #36373b; /* surface container high */
 
-    --border: #44474e; /* outline variant */
-    --border-accent: #a8c7fa; /* primary */
+  --border: #44474e; /* outline variant */
+  --border-accent: #06b6d4; /* primary cyan matching light mode */
 
-    --text-primary: #e2e2e6; /* on-surface */
-    --text-secondary: #c4c6d0; /* on-surface-variant */
-    --text-muted: #8e9099; /* outline */
+  --text-primary: #e2e2e6; /* on-surface */
+  --text-secondary: #c4c6d0; /* on-surface-variant */
+  --text-muted: #8e9099; /* outline */
 
-    --accent-blue: #a8c7fa; /* M3 primary */
-    --accent-cyan: #4fd8eb; /* M3 tertiary */
-    --accent-emerald: #6dd58c; /* M3 success */
-    --accent-amber: #f2b8b5; /* M3 error */
-    --accent-rose: #f2b8b5; 
-    --accent-violet: #d0bcff; /* M3 secondary */
-    
-    --md-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
-  }
+  --accent-blue: #06b6d4; /* M3 primary */
+  --accent-cyan: #0891b2; /* M3 tertiary */
+  --accent-emerald: #6dd58c; /* M3 success */
+  --accent-amber: #f2b8b5; /* M3 error */
+  --accent-rose: #f2b8b5; 
+  --accent-violet: #d0bcff; /* M3 secondary */
+  
+  --md-elevation-1: 0px 1px 2px 0px rgba(0,0,0,0.3), 0px 1px 3px 1px rgba(0,0,0,0.15);
 }
 
 /* ── Base ───────────────────────────────────────────────────────────────────── */
