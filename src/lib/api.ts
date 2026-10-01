@@ -279,6 +279,11 @@ export const api = {
       }),
     delete: (id: string) =>
       request<void>(`/organizations/${id}`, { method: "DELETE" }),
+    assignAgent: (id: string, agentId: string | null) =>
+      request<Organization>(`/organizations/${id}/assign-agent`, {
+        method: "PATCH",
+        body: JSON.stringify({ agent_id: agentId }),
+      }),
   },
 
   businessUnits: {
@@ -330,8 +335,12 @@ export const api = {
       request<OrganizationStats>(`/stats/organizations/${orgId}`),
   },
   users: {
-    list: (role?: UserRole) =>
-      request<AuthUser[]>(`/users${role ? `?role=${role}` : ""}`),
+    list: (role?: UserRole, approvedOnly?: boolean) => {
+      const q = new URLSearchParams();
+      if (role) q.set("role", role);
+      if (approvedOnly) q.set("approved_only", "true");
+      return request<AuthUser[]>(`/users${q.toString() ? `?${q.toString()}` : ""}`);
+    },
     create: (body: { name: string; email: string; phone_number?: string; password: string; role: UserRole }) =>
       request<AuthUser>("/users", {
         method: "POST",

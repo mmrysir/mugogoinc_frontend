@@ -15,6 +15,139 @@ import Sidebar from "@/components/Sidebar";
 import { StatusBadge, RouteTypeBadge } from "@/components/Badges";
 import Icon from "@/components/Icon";
 
+function AssignAgentCard({
+  org,
+  currentUser,
+  onAssigned,
+}: {
+  org: Organization;
+  currentUser: AuthUser;
+  onAssigned: () => void;
+}) {
+  const [agents, setAgents] = useState<AuthUser[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState(org.assigned_agent_id ?? "");
+  const [saving, setSaving] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    api.users.list("AGENT", true).then(setAgents).catch(() => {});
+    setSelectedAgentId(org.assigned_agent_id ?? "");
+  }, [org.assigned_agent_id]);
+
+  const canEdit = currentUser.role === "SUPER_ADMIN" || currentUser.role === "MANAGER";
+  if (!canEdit) return null;
+
+  const currentAgentName = agents.find((a) => a.id === org.assigned_agent_id)?.name;
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSuccess(false);
+    try {
+      await api.organizations.assignAgent(org.id, selectedAgentId || null);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 2500);
+      onAssigned();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to assign agent");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnassign = async () => {
+    if (!confirm("Remove agent assignment from this organization?")) return;
+    setSaving(true);
+    try {
+      await api.organizations.assignAgent(org.id, null);
+      setSelectedAgentId("");
+      onAssigned();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to unassign agent");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="card mb-6 animate-fade-in" style={{ borderColor: "rgba(99,102,241,0.2)" }}>
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>person_pin</span>
+        <h3 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+          Assigned Agent
+        </h3>
+        {org.assigned_agent_id && (
+          <span
+            style={{
+              background: "rgba(16,185,129,0.12)",
+              color: "#34d399",
+              borderRadius: "9999px",
+              padding: "0.1rem 0.6rem",
+              fontSize: "0.72rem",
+              fontWeight: 600,
+            }}
+          >
+            ● Active
+          </span>
+        )}
+      </div>
+
+      {org.assigned_agent_id && currentAgentName && (
+        <div className="mb-4 p-3 rounded-lg" style={{ background: "var(--bg-elevated)" }}>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-sm" style={{ color: "#34d399" }}>account_circle</span>
+            <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{currentAgentName}</span>
+          </div>
+          <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+            {agents.find((a) => a.id === org.assigned_agent_id)?.email}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-3 items-end">
+        <div className="flex-1">
+          <label className="form-label text-xs">Reassign to Agent</label>
+          <select
+            className="form-select"
+            value={selectedAgentId}
+            onChange={(e) => setSelectedAgentId(e.target.value)}
+            disabled={saving}
+          >
+            <option value="">— Select an approved agent —</option>
+            {agents.map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name} · {agent.email}
+              </option>
+            ))}
+          </select>
+        </div>
+        <button
+          className="btn btn-primary"
+          style={{ whiteSpace: "nowrap" }}
+          disabled={saving || !selectedAgentId || selectedAgentId === org.assigned_agent_id}
+          onClick={handleSave}
+        >
+          {saving ? "Saving…" : success ? "✓ Saved" : "Assign"}
+        </button>
+        {org.assigned_agent_id && (
+          <button
+            className="btn btn-ghost"
+            style={{ whiteSpace: "nowrap", color: "#fb7185" }}
+            disabled={saving}
+            onClick={handleUnassign}
+          >
+            Unassign
+          </button>
+        )}
+      </div>
+      {agents.length === 0 && (
+        <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
+          No approved agents available. Approve agents from Team Management first.
+        </p>
+      )}
+    </div>
+  );
+}
+
 function BuModal({
   orgId,
   bu,
@@ -203,6 +336,11 @@ export default function OrgDetailPage() {
               )}
             </div>
             <div className="accent-line mb-8" />
+
+            {/* Assign Agent Card — visible to admins/managers */}
+            {user && (user.role === "SUPER_ADMIN" || user.role === "MANAGER") && (
+              <AssignAgentCard org={org} currentUser={user} onAssigned={fetchData} />
+            )}
 
             {stats && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 animate-fade-in">

@@ -27,7 +27,7 @@ function OrgModal({
   useEffect(() => {
     let active = true;
     api.users
-      .list("AGENT")
+      .list("AGENT", true)  // approved_only = true
       .then((data) => {
         if (active) setAgents(data);
       })
@@ -126,6 +126,7 @@ export default function OrganizationsPage() {
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
+  const [agentMap, setAgentMap] = useState<Record<string, string>>({});  // id -> name
 
   const fetchSession = useCallback(async () => {
     try {
@@ -167,6 +168,12 @@ export default function OrganizationsPage() {
     const timer = setTimeout(() => {
       fetchOrgs();
       fetchSession();
+      // Build agent name map for display in table
+      api.users.list("AGENT", true).then((agents) => {
+        const map: Record<string, string> = {};
+        agents.forEach((a) => { map[a.id] = a.name; });
+        setAgentMap(map);
+      }).catch(() => {});
     }, 0);
     return () => clearTimeout(timer);
   }, [fetchSession, fetchOrgs]);
@@ -236,7 +243,7 @@ export default function OrganizationsPage() {
                 <tr>
                   <th>Name</th>
                   <th>Status</th>
-                  <th>Agent ID</th>
+                  <th>Assigned Agent</th>
                   <th>Created</th>
                   <th>Actions</th>
                 </tr>
@@ -260,8 +267,10 @@ export default function OrganizationsPage() {
                     </td>
                     <td><StatusBadge value={org.status} /></td>
                     <td>
-                      <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-                        {org.assigned_agent_id || "—"}
+                      <span className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                        {org.assigned_agent_id
+                          ? (agentMap[org.assigned_agent_id] ?? org.assigned_agent_id.slice(0, 8) + "…")
+                          : <span style={{ color: "var(--text-muted)" }}>Unassigned</span>}
                       </span>
                     </td>
                     <td>
