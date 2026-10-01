@@ -198,6 +198,44 @@ export default function UsersPage() {
     }
   };
 
+  const handleFreeze = async (user: AuthUser) => {
+    if (!confirm(`Freeze / Pause account for ${user.name}? They will be unable to log in until unfrozen.`)) return;
+    setActionLoading(user.id + "_freeze");
+    try {
+      await api.users.freeze(user.id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to freeze account");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleUnfreeze = async (user: AuthUser) => {
+    setActionLoading(user.id + "_unfreeze");
+    try {
+      await api.users.unfreeze(user.id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to unfreeze account");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleDelete = async (user: AuthUser) => {
+    if (!confirm(`Are you sure you want to permanently delete ${user.name} (${user.email})? This action cannot be undone.`)) return;
+    setActionLoading(user.id + "_delete");
+    try {
+      await api.users.delete(user.id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="app-shell">
@@ -348,13 +386,14 @@ export default function UsersPage() {
                 <th>Name</th>
                 <th>Email</th>
                 <th>Role</th>
+                <th>Status</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
               {approvedUsers.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>
+                  <td colSpan={5} style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>
                     No approved team members yet.
                   </td>
                 </tr>
@@ -372,16 +411,79 @@ export default function UsersPage() {
                   <td><span style={{ color: "var(--text-muted)" }}>{user.email}</span></td>
                   <td><RoleBadge role={user.role} /></td>
                   <td>
+                    {user.is_frozen ? (
+                      <span
+                        style={{
+                          background: "rgba(239, 68, 68, 0.15)",
+                          color: "#f87171",
+                          borderRadius: "9999px",
+                          padding: "0.2rem 0.65rem",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        ❄️ Frozen / Paused
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: "rgba(16, 185, 129, 0.15)",
+                          color: "#34d399",
+                          borderRadius: "9999px",
+                          padding: "0.2rem 0.65rem",
+                          fontSize: "0.75rem",
+                          fontWeight: 600,
+                        }}
+                      >
+                        🟢 Active
+                      </span>
+                    )}
+                  </td>
+                  <td>
                     <div className="flex gap-2">
                       {currentUser.role === "SUPER_ADMIN" && (
                         <button
                           type="button"
                           className="btn btn-ghost"
-                          style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                          style={{ padding: "0.3rem 0.65rem", fontSize: "0.8rem" }}
                           onClick={() => { setEditingUser(user); setShowModal(true); }}
                         >
                           Edit Role
                         </button>
+                      )}
+                      {user.id !== currentUser?.id && (
+                        <>
+                          {user.is_frozen ? (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: "0.3rem 0.65rem", fontSize: "0.8rem", color: "#34d399" }}
+                              disabled={actionLoading === user.id + "_unfreeze"}
+                              onClick={() => handleUnfreeze(user)}
+                            >
+                              {actionLoading === user.id + "_unfreeze" ? "…" : "▶ Resume"}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: "0.3rem 0.65rem", fontSize: "0.8rem", color: "#fbbf24" }}
+                              disabled={actionLoading === user.id + "_freeze"}
+                              onClick={() => handleFreeze(user)}
+                            >
+                              {actionLoading === user.id + "_freeze" ? "…" : "⏸ Freeze"}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: "0.3rem 0.65rem", fontSize: "0.8rem", color: "#fb7185" }}
+                            disabled={actionLoading === user.id + "_delete"}
+                            onClick={() => handleDelete(user)}
+                          >
+                            {actionLoading === user.id + "_delete" ? "…" : "🗑 Delete"}
+                          </button>
+                        </>
                       )}
                     </div>
                   </td>

@@ -89,6 +89,7 @@ export interface AuthUser {
   name: string;
   role: UserRole;
   is_approved: boolean;
+  is_frozen?: boolean;
 }
 
 export interface TokenResponse {
@@ -355,6 +356,12 @@ export const api = {
       request<AuthUser>(`/users/${id}/approve`, { method: "PATCH" }),
     reject: (id: string) =>
       request<{ message: string }>(`/users/${id}/reject`, { method: "PATCH" }),
+    freeze: (id: string) =>
+      request<AuthUser>(`/users/${id}/freeze`, { method: "PATCH" }),
+    unfreeze: (id: string) =>
+      request<AuthUser>(`/users/${id}/unfreeze`, { method: "PATCH" }),
+    delete: (id: string) =>
+      request<{ message: string }>(`/users/${id}`, { method: "DELETE" }),
   },
   auth: {
     register: (body: { name: string; email: string; phone_number: string; password: string }) =>
