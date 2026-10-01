@@ -27,13 +27,9 @@ function UserModal({
     setError("");
     try {
       if (user) {
-        // Upgrade/Update Role
         await api.users.updateRole(user.id, role);
       } else {
-        // Create new user
-        if (!password) {
-          throw new Error("Password is required for new users");
-        }
+        if (!password) throw new Error("Password is required for new users");
         await api.users.create({ name, email, password, role });
       }
       onSaved();
@@ -64,7 +60,7 @@ function UserModal({
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Jane Doe"
               required
-              disabled={!!user} // Only editable on create
+              disabled={!!user}
             />
           </div>
           <div>
@@ -76,7 +72,7 @@ function UserModal({
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. jane@example.com"
               required
-              disabled={!!user} // Only editable on create
+              disabled={!!user}
             />
           </div>
           {!user && (
@@ -105,7 +101,7 @@ function UserModal({
               </p>
             )}
           </div>
-          
+
           {error && <p className="text-sm" style={{ color: "#fb7185" }}>{error}</p>}
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn btn-ghost flex-1">Cancel</button>
@@ -119,6 +115,33 @@ function UserModal({
   );
 }
 
+function RoleBadge({ role }: { role: UserRole }) {
+  const colors: Record<string, string> = {
+    SUPER_ADMIN: "rgba(239,68,68,0.15)",
+    MANAGER: "rgba(59,130,246,0.15)",
+    AGENT: "rgba(16,185,129,0.15)",
+  };
+  const textColors: Record<string, string> = {
+    SUPER_ADMIN: "#f87171",
+    MANAGER: "#60a5fa",
+    AGENT: "#34d399",
+  };
+  return (
+    <span
+      style={{
+        background: colors[role] ?? "rgba(100,100,100,0.1)",
+        color: textColors[role] ?? "#ccc",
+        borderRadius: "9999px",
+        padding: "0.2rem 0.7rem",
+        fontSize: "0.75rem",
+        fontWeight: 600,
+      }}
+    >
+      {role.replace(/_/g, " ")}
+    </span>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<AuthUser[]>([]);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -126,18 +149,20 @@ export default function UsersPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<AuthUser | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       const me = await api.auth.me();
       setCurrentUser(me);
-      if (me.role === "SUPER_ADMIN") {
+      // Both SUPER_ADMIN and MANAGER can view users
+      if (me.role === "SUPER_ADMIN" || me.role === "MANAGER") {
         const data = await api.users.list();
         setUsers(data);
       }
       setError(null);
     } catch {
-      setError("Failed to fetch users. Ensure you are logged in as a Super Admin.");
+      setError("Failed to fetch users. Ensure you have Manager or Super Admin access.");
     } finally {
       setLoading(false);
     }
@@ -147,6 +172,31 @@ export default function UsersPage() {
     const timer = setTimeout(fetchData, 0);
     return () => clearTimeout(timer);
   }, [fetchData]);
+
+  const handleApprove = async (user: AuthUser) => {
+    setActionLoading(user.id + "_approve");
+    try {
+      await api.users.approve(user.id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to approve user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async (user: AuthUser) => {
+    if (!confirm(`Reject and delete account for ${user.name} (${user.email})?`)) return;
+    setActionLoading(user.id + "_reject");
+    try {
+      await api.users.reject(user.id);
+      await fetchData();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to reject user");
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -159,7 +209,7 @@ export default function UsersPage() {
     );
   }
 
-  if (currentUser?.role !== "SUPER_ADMIN") {
+  if (currentUser?.role !== "SUPER_ADMIN" && currentUser?.role !== "MANAGER") {
     return (
       <div className="app-shell">
         <Sidebar />
@@ -167,32 +217,43 @@ export default function UsersPage() {
           <div className="card text-center py-16 mt-8">
             <div className="text-4xl mb-4 text-red-500"><Icon name="lock" size="lg" /></div>
             <p className="font-semibold mb-2" style={{ color: "var(--text-primary)" }}>Access Denied</p>
-            <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>You must be a Super Admin to view the Control Center.</p>
+            <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>You must be a Manager or Super Admin to access Team Management.</p>
           </div>
         </main>
       </div>
     );
   }
 
+  const pendingUsers = users.filter((u) => !u.is_approved);
+  const approvedUsers = users.filter((u) => u.is_approved);
+
   return (
     <div className="app-shell">
       <Sidebar />
       <main className="main-content">
+        {/* Header */}
         <div className="flex items-center justify-between mb-8 animate-fade-in">
           <div>
             <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
               Team Management
             </h1>
             <p style={{ color: "var(--text-muted)", fontSize: "0.875rem" }}>
-              {users.length} registered user{users.length !== 1 ? "s" : ""}
+              {approvedUsers.length} active member{approvedUsers.length !== 1 ? "s" : ""}
+              {pendingUsers.length > 0 && (
+                <span style={{ color: "#fbbf24", fontWeight: 600 }}>
+                  {" "}· {pendingUsers.length} pending approval
+                </span>
+              )}
             </p>
           </div>
-          <button
-            className="btn btn-primary"
-            onClick={() => { setEditingUser(null); setShowModal(true); }}
-          >
-            + New User
-          </button>
+          {currentUser.role === "SUPER_ADMIN" && (
+            <button
+              className="btn btn-primary"
+              onClick={() => { setEditingUser(null); setShowModal(true); }}
+            >
+              + New User
+            </button>
+          )}
         </div>
         <div className="accent-line mb-8" />
 
@@ -202,7 +263,85 @@ export default function UsersPage() {
           </div>
         )}
 
+        {/* ── Pending Approval Section ── */}
+        {pendingUsers.length > 0 && (
+          <div className="card animate-slide-up mb-8" style={{ borderColor: "rgba(251,191,36,0.3)", background: "rgba(251,191,36,0.04)" }}>
+            <div className="flex items-center gap-2 mb-5">
+              <span className="material-symbols-outlined" style={{ color: "#fbbf24" }}>pending</span>
+              <h2 className="text-base font-bold" style={{ color: "#fbbf24" }}>
+                Pending Account Requests
+              </h2>
+              <span
+                style={{
+                  background: "#fbbf24",
+                  color: "#0f172a",
+                  borderRadius: "9999px",
+                  padding: "0.1rem 0.55rem",
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                }}
+              >
+                {pendingUsers.length}
+              </span>
+            </div>
+            <div style={{ padding: 0, overflow: "hidden", borderRadius: "0.5rem", border: "1px solid rgba(251,191,36,0.15)" }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pendingUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                          {user.name}
+                        </span>
+                      </td>
+                      <td><span style={{ color: "var(--text-muted)" }}>{user.email}</span></td>
+                      <td><span style={{ color: "var(--text-muted)", fontSize: "0.85rem" }}>—</span></td>
+                      <td>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{ padding: "0.3rem 0.9rem", fontSize: "0.8rem", background: "linear-gradient(135deg,#10b981,#059669)" }}
+                            disabled={actionLoading === user.id + "_approve"}
+                            onClick={() => handleApprove(user)}
+                          >
+                            {actionLoading === user.id + "_approve" ? "…" : "✓ Approve"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem", color: "#fb7185" }}
+                            disabled={actionLoading === user.id + "_reject"}
+                            onClick={() => handleReject(user)}
+                          >
+                            {actionLoading === user.id + "_reject" ? "…" : "✗ Reject"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* ── Active Team Members ── */}
         <div className="card animate-slide-up" style={{ padding: 0, overflow: "hidden" }}>
+          <div className="flex items-center gap-2 p-5 pb-0">
+            <span className="material-symbols-outlined text-sm" style={{ color: "var(--text-secondary)" }}>group</span>
+            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+              Active Team
+            </h2>
+          </div>
           <table className="data-table">
             <thead>
               <tr>
@@ -213,7 +352,14 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {users.map((user) => (
+              {approvedUsers.length === 0 && (
+                <tr>
+                  <td colSpan={4} style={{ textAlign: "center", color: "var(--text-muted)", padding: "2rem" }}>
+                    No approved team members yet.
+                  </td>
+                </tr>
+              )}
+              {approvedUsers.map((user) => (
                 <tr key={user.id}>
                   <td>
                     <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
@@ -223,22 +369,20 @@ export default function UsersPage() {
                       <span className="ml-2 text-xs opacity-60">(You)</span>
                     )}
                   </td>
-                  <td>
-                    <span style={{ color: "var(--text-muted)" }}>{user.email}</span>
-                  </td>
-                  <td>
-                    <span className="badge badge-express">{user.role.replace(/_/g, " ")}</span>
-                  </td>
+                  <td><span style={{ color: "var(--text-muted)" }}>{user.email}</span></td>
+                  <td><RoleBadge role={user.role} /></td>
                   <td>
                     <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
-                        onClick={() => { setEditingUser(user); setShowModal(true); }}
-                      >
-                        Edit Role
-                      </button>
+                      {currentUser.role === "SUPER_ADMIN" && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                          onClick={() => { setEditingUser(user); setShowModal(true); }}
+                        >
+                          Edit Role
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

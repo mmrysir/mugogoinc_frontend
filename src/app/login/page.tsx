@@ -24,7 +24,13 @@ function LoginForm() {
       setAccessToken(access_token);
       router.push('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during sign-in.');
+      const msg = err instanceof Error ? err.message : '';
+      // Backend returns 403 with detail "PENDING_APPROVAL" for unapproved agents
+      if (msg.includes('PENDING_APPROVAL') || msg.includes('403')) {
+        router.push('/pending');
+        return;
+      }
+      setError(msg || 'An error occurred during sign-in.');
       setIsLoading(false);
     }
   };

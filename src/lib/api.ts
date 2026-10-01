@@ -88,6 +88,7 @@ export interface AuthUser {
   email: string;
   name: string;
   role: UserRole;
+  is_approved: boolean;
 }
 
 export interface TokenResponse {
@@ -341,6 +342,10 @@ export const api = {
         method: "PATCH",
         body: JSON.stringify({ role }),
       }),
+    approve: (id: string) =>
+      request<AuthUser>(`/users/${id}/approve`, { method: "PATCH" }),
+    reject: (id: string) =>
+      request<{ message: string }>(`/users/${id}/reject`, { method: "PATCH" }),
   },
   auth: {
     register: (body: { name: string; email: string; phone_number: string; password: string }) =>

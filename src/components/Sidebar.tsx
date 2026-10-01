@@ -18,20 +18,25 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     let active = true;
     api.auth
       .me()
       .then((u) => {
-        if (active) setUser(u);
+        if (active) {
+          setUser(u);
+          // Fetch pending approvals count for Managers and Admins
+          if (u.role === "SUPER_ADMIN" || u.role === "MANAGER") {
+            api.users.list().then((all) => {
+              if (active) setPendingCount(all.filter((x) => !x.is_approved).length);
+            }).catch(() => {});
+          }
+        }
       })
-      .catch(() => {
-        // Not authenticated yet; leave the user block empty.
-      });
-    return () => {
-      active = false;
-    };
+      .catch(() => {});
+    return () => { active = false; };
   }, []);
 
   const handleSignOut = () => {
@@ -86,7 +91,7 @@ export default function Sidebar() {
             </Link>
           );
         })}
-        {user?.role === "SUPER_ADMIN" && (
+        {(user?.role === "SUPER_ADMIN" || user?.role === "MANAGER") && (
           <Link
             href="/users"
             className={`nav-item${pathname.startsWith("/users") ? " active" : ""}`}
@@ -95,6 +100,22 @@ export default function Sidebar() {
               group
             </span>
             <span>Team Management</span>
+            {pendingCount > 0 && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  background: "#eab308",
+                  color: "#0f172a",
+                  borderRadius: "9999px",
+                  padding: "0.05rem 0.45rem",
+                  fontSize: "0.7rem",
+                  fontWeight: 700,
+                  lineHeight: 1.6,
+                }}
+              >
+                {pendingCount}
+              </span>
+            )}
           </Link>
         )}
       </nav>
