@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { api, Lead, DeliveryStatus, SourceChannel } from "@/lib/api";
 import Icon from "@/components/Icon";
 import Sidebar from "@/components/Sidebar";
@@ -15,6 +16,45 @@ const CHANNELS: SourceChannel[] = [
   "TIKTOK",
   "SMS",
 ];
+
+// ── Date-range helpers ─────────────────────────────────────────────────────────
+
+type RangeKey = "today" | "1w" | "1m" | "3m" | "6m" | "1y" | "custom" | "all";
+
+const RANGE_LABELS: { key: RangeKey; label: string }[] = [
+  { key: "all", label: "All Time" },
+  { key: "today", label: "Today" },
+  { key: "1w", label: "1 Week" },
+  { key: "1m", label: "1 Month" },
+  { key: "3m", label: "3 Months" },
+  { key: "6m", label: "6 Months" },
+  { key: "1y", label: "1 Year" },
+  { key: "custom", label: "Custom" },
+];
+
+function resolveRange(
+  key: RangeKey,
+  custom: { from: string; to: string }
+): { from?: string; to?: string } {
+  if (key === "all") return {};
+  if (key === "custom") {
+    return {
+      from: custom.from ? new Date(custom.from).toISOString() : undefined,
+      to: custom.to ? new Date(custom.to + "T23:59:59").toISOString() : undefined,
+    };
+  }
+  const now = new Date();
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const offsets: Record<Exclude<RangeKey, "custom" | "all">, number> = {
+    today: 0, "1w": 7, "1m": 30, "3m": 90, "6m": 180, "1y": 365,
+  };
+  const from = new Date(startOfToday);
+  from.setDate(from.getDate() - offsets[key as Exclude<RangeKey, "custom" | "all">]);
+  return { from: from.toISOString(), to: now.toISOString() };
+}
+
+// ── Lead Detail Modal ──────────────────────────────────────────────────────────
 
 function LeadDetail({ lead }: { lead: Lead }) {
   return (
@@ -55,6 +95,8 @@ function LeadDetail({ lead }: { lead: Lead }) {
   );
 }
 
+// ── Inner Component ────────────────────────────────────────────────────────────
+
 function LeadFeedInner() {
   const searchParams = useSearchParams();
   const buIdParam = searchParams.get("business_unit_id") || undefined;
@@ -65,6 +107,14 @@ function LeadFeedInner() {
   const [error, setError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  const [rangeKey, setRangeKey] = useState<RangeKey>("all");
+  const [customFrom, setCustomFrom] = useState("");
+  const [customTo, setCustomTo] = useState("");
+  const [showCustom, setShowCustom] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<DeliveryStatus | "">("");
+  const [filterChannel, setFilterChannel] = useState<SourceChannel | "">("");
+  const [filterBuId, setFilterBuId] = useState(buIdParam || "");
 
   const openLead = async (leadId: string) => {
     setDetailLoading(true);
@@ -78,16 +128,15 @@ function LeadFeedInner() {
     }
   };
 
-  const [filterStatus, setFilterStatus] = useState<DeliveryStatus | "">("");
-  const [filterChannel, setFilterChannel] = useState<SourceChannel | "">("");
-  const [filterBuId, setFilterBuId] = useState(buIdParam || "");
-
   const fetchLeads = useCallback(async () => {
+    const range = resolveRange(rangeKey, { from: customFrom, to: customTo });
     try {
       const data = await api.leads.list({
         business_unit_id: filterBuId || undefined,
         delivery_status: (filterStatus as DeliveryStatus) || undefined,
         source_channel: (filterChannel as SourceChannel) || undefined,
+        date_from: range.from,
+        date_to: range.to,
         limit: 100,
       });
       setLeads(data.items);
@@ -98,9 +147,10 @@ function LeadFeedInner() {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus, filterChannel, filterBuId]);
+  }, [filterStatus, filterChannel, filterBuId, rangeKey, customFrom, customTo]);
 
   useEffect(() => {
+    setLoading(true);
     const initial = setTimeout(fetchLeads, 0);
     const interval = setInterval(fetchLeads, 15000);
     return () => {
@@ -111,7 +161,7 @@ function LeadFeedInner() {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-6 animate-fade-in flex-wrap gap-4">
+      <div className="flex items-center justify-between mb-2 animate-fade-in flex-wrap gap-4">
         <div>
           <h1 className="text-2xl font-bold mb-1" style={{ color: "var(--text-primary)" }}>
             Lead Feed
@@ -120,38 +170,86 @@ function LeadFeedInner() {
             {total} lead{total !== 1 ? "s" : ""} · live polling every 15s
           </p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          <select
-            id="filter-status"
-            className="form-select"
-            style={{ width: "auto" }}
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as DeliveryStatus | "")}
-          >
-            <option value="">All Statuses</option>
-            {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
-          <select
-            id="filter-channel"
-            className="form-select"
-            style={{ width: "auto" }}
-            value={filterChannel}
-            onChange={(e) => setFilterChannel(e.target.value as SourceChannel | "")}
-          >
-            <option value="">All Channels</option>
-            {CHANNELS.map((c) => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
-          </select>
-          <input
-            id="filter-bu-id"
-            className="form-input"
-            style={{ width: 220 }}
-            value={filterBuId}
-            onChange={(e) => setFilterBuId(e.target.value)}
-            placeholder="Filter by Business Unit ID"
-          />
-        </div>
       </div>
-      <div className="accent-line mb-6" />
+      <div className="accent-line mb-5" />
+
+      {/* ── Time Range Pills ── */}
+      <div className="flex flex-wrap gap-2 mb-4">
+        {RANGE_LABELS.map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            id={`global-range-${key}`}
+            className={`range-pill${rangeKey === key ? " active" : ""}`}
+            onClick={() => {
+              setRangeKey(key);
+              setShowCustom(key === "custom");
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Custom date inputs */}
+      {showCustom && (
+        <div className="flex gap-3 flex-wrap mb-4 animate-fade-in">
+          <div>
+            <label className="form-label" htmlFor="global-custom-from">From</label>
+            <input
+              id="global-custom-from"
+              type="date"
+              className="form-input"
+              style={{ width: 170 }}
+              value={customFrom}
+              onChange={(e) => setCustomFrom(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="form-label" htmlFor="global-custom-to">To</label>
+            <input
+              id="global-custom-to"
+              type="date"
+              className="form-input"
+              style={{ width: 170 }}
+              value={customTo}
+              onChange={(e) => setCustomTo(e.target.value)}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Secondary Filters ── */}
+      <div className="flex gap-2 flex-wrap mb-6">
+        <select
+          id="filter-status"
+          className="form-select"
+          style={{ width: "auto" }}
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value as DeliveryStatus | "")}
+        >
+          <option value="">All Statuses</option>
+          {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select
+          id="filter-channel"
+          className="form-select"
+          style={{ width: "auto" }}
+          value={filterChannel}
+          onChange={(e) => setFilterChannel(e.target.value as SourceChannel | "")}
+        >
+          <option value="">All Channels</option>
+          {CHANNELS.map((c) => <option key={c} value={c}>{c.replace(/_/g, " ")}</option>)}
+        </select>
+        <input
+          id="filter-bu-id"
+          className="form-input"
+          style={{ width: 220 }}
+          value={filterBuId}
+          onChange={(e) => setFilterBuId(e.target.value)}
+          placeholder="Filter by Business Unit ID"
+        />
+      </div>
 
       {error && (
         <div className="card mb-4" style={{ borderColor: "rgba(244,63,94,0.3)", background: "rgba(244,63,94,0.06)" }}>
@@ -181,6 +279,7 @@ function LeadFeedInner() {
                 <th>Channel</th>
                 <th>Status</th>
                 <th>CRM</th>
+                <th>Business Unit</th>
                 <th>Received</th>
                 <th></th>
               </tr>
@@ -200,12 +299,20 @@ function LeadFeedInner() {
                       <div className="text-xs" style={{ color: "var(--text-muted)" }}>{lead.email}</div>
                     )}
                   </td>
-                  <td>
-                    <span className="font-mono text-xs">{lead.phone_number}</span>
-                  </td>
+                  <td><span className="font-mono text-xs">{lead.phone_number}</span></td>
                   <td><ChannelBadge channel={lead.source_channel} /></td>
                   <td><StatusBadge value={lead.delivery_status} /></td>
                   <td><StatusBadge value={lead.crm_forward_status} /></td>
+                  <td>
+                    <Link
+                      href={`/leads/${lead.business_unit_id}`}
+                      className="font-mono text-xs hover:underline"
+                      style={{ color: "var(--accent-blue)" }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {lead.business_unit_id.slice(0, 8)}…
+                    </Link>
+                  </td>
                   <td>
                     <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
                       {new Date(lead.created_at).toLocaleString()}

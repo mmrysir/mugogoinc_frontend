@@ -127,6 +127,13 @@ export interface Lead {
   delivery_status: DeliveryStatus;
   crm_forward_status: CrmForwardStatus;
   dedupe_hash: string;
+  // Attribution fields (from LeadResponse)
+  gclid: string | null;
+  fbclid: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  user_agent: string | null;
   created_at: string;
 }
 
@@ -315,6 +322,8 @@ export const api = {
       organization_id?: string;
       delivery_status?: DeliveryStatus;
       source_channel?: SourceChannel;
+      date_from?: string;
+      date_to?: string;
       skip?: number;
       limit?: number;
     }) => {
@@ -323,6 +332,8 @@ export const api = {
       if (params?.organization_id) q.set("organization_id", params.organization_id);
       if (params?.delivery_status) q.set("delivery_status", params.delivery_status);
       if (params?.source_channel) q.set("source_channel", params.source_channel);
+      if (params?.date_from) q.set("date_from", params.date_from);
+      if (params?.date_to) q.set("date_to", params.date_to);
       q.set("skip", String(params?.skip ?? 0));
       q.set("limit", String(params?.limit ?? 50));
       return request<PaginatedResponse<Lead>>(`/leads?${q.toString()}`);
