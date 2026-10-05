@@ -137,6 +137,8 @@ export interface Lead {
   // Returning-lead tracking fields
   submission_count: number;
   is_returning: boolean;
+  is_partial?: boolean;
+  is_blurred?: boolean;
   last_activity_at: string;
   created_at: string;
 }

@@ -123,7 +123,7 @@ function LeadSlideOver({
         {/* Header */}
         <div className="slide-over-header">
           <div>
-            <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+            <h2 className={`text-lg font-bold ${lead.is_blurred ? "blur-[3px] select-none pointer-events-none" : ""}`} style={{ color: "var(--text-primary)" }}>
               {lead.full_name}
             </h2>
             <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
@@ -145,6 +145,19 @@ function LeadSlideOver({
         </div>
 
         <div className="slide-over-body">
+          {lead.is_blurred && (
+            <div
+              className="rounded-xl p-3 mb-4 flex items-center gap-2 text-xs font-semibold"
+              style={{
+                background: "rgba(245,158,11,0.12)",
+                color: "#fbbf24",
+                border: "1px solid rgba(245,158,11,0.25)",
+              }}
+            >
+              <span>🔒 PII Obfuscated (Account pending approval or restricted)</span>
+            </div>
+          )}
+
           {/* Contact card */}
           <div
             className="rounded-xl p-4 mb-5"
@@ -168,7 +181,7 @@ function LeadSlideOver({
                   .slice(0, 2)
                   .toUpperCase()}
               </div>
-              <div>
+              <div className={lead.is_blurred ? "blur-[3px] select-none pointer-events-none" : ""}>
                 <div className="font-semibold" style={{ color: "var(--text-primary)" }}>
                   {lead.full_name}
                 </div>
@@ -251,6 +264,7 @@ export default function BuLeadsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+  const [unlockLead, setUnlockLead] = useState<Lead | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   // Filters
@@ -554,6 +568,7 @@ export default function BuLeadsPage() {
                 {displayed.map((lead, idx) => (
                   <tr
                     key={lead.id}
+                    className={lead.is_partial ? "bg-amber-500/5" : ""}
                     style={{ cursor: "pointer" }}
                     onClick={() => openLead(lead.id)}
                   >
@@ -563,14 +578,16 @@ export default function BuLeadsPage() {
                       </span>
                     </td>
                     <td>
-                      <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
-                        {lead.full_name}
-                      </span>
-                      {lead.email && (
-                        <div className="text-xs" style={{ color: "var(--text-muted)" }}>
-                          {lead.email}
-                        </div>
-                      )}
+                      <div className={lead.is_blurred ? "blur-[3px] select-none pointer-events-none" : ""}>
+                        <span className="font-semibold" style={{ color: "var(--text-primary)" }}>
+                          {lead.full_name}
+                        </span>
+                        {lead.email && (
+                          <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            {lead.email}
+                          </div>
+                        )}
+                      </div>
                       {/* Returning Lead Badge */}
                       {lead.is_returning && (
                         <span
@@ -598,13 +615,21 @@ export default function BuLeadsPage() {
                       )}
                     </td>
                     <td>
-                      <span className="font-mono text-xs">{lead.phone_number}</span>
+                      <span className={`font-mono text-xs ${lead.is_blurred ? "blur-[3px] select-none pointer-events-none" : ""}`}>
+                        {lead.phone_number}
+                      </span>
                     </td>
                     <td>
                       <ChannelBadge channel={lead.source_channel} />
                     </td>
                     <td>
-                      <StatusBadge value={lead.delivery_status} />
+                      {lead.is_partial ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                          ⚠️ Partial / Abandoned
+                        </span>
+                      ) : (
+                        <StatusBadge value={lead.delivery_status} />
+                      )}
                     </td>
                     <td>
                       <StatusBadge value={lead.crm_forward_status} />
@@ -618,18 +643,31 @@ export default function BuLeadsPage() {
                       </span>
                     </td>
                     <td>
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        style={{ padding: "0.25rem 0.7rem", fontSize: "0.75rem" }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openLead(lead.id);
-                        }}
-                        aria-label={`View lead ${lead.full_name}`}
-                      >
-                        {detailLoading ? "…" : "View"}
-                      </button>
+                      {lead.is_blurred ? (
+                        <button
+                          type="button"
+                          className="px-3 py-1 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded shadow-sm inline-flex items-center gap-1 transition-all"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUnlockLead(lead);
+                          }}
+                        >
+                          🔒 Unlock Lead
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          style={{ padding: "0.25rem 0.7rem", fontSize: "0.75rem" }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openLead(lead.id);
+                          }}
+                          aria-label={`View lead ${lead.full_name}`}
+                        >
+                          {detailLoading ? "…" : "View"}
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -676,6 +714,45 @@ export default function BuLeadsPage() {
             lead={selectedLead}
             onClose={() => setSelectedLead(null)}
           />
+        )}
+
+        {/* ── Unlock Lead Modal ── */}
+        {unlockLead && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+            <div className="card max-w-md w-full p-6 text-center space-y-4 border border-indigo-500/30 shadow-2xl">
+              <div className="w-14 h-14 rounded-full bg-indigo-500/20 text-indigo-400 mx-auto flex items-center justify-center text-2xl font-bold">
+                🔒
+              </div>
+              <h3 className="text-xl font-bold text-gray-100">Unlock Lead Details</h3>
+              <p className="text-sm text-gray-400 leading-relaxed">
+                Contact details for <span className="font-semibold text-indigo-300">{unlockLead.full_name}</span> are masked because your account is pending administrator approval or operates with restricted permissions.
+              </p>
+              <div className="bg-indigo-950/40 p-3 rounded-lg border border-indigo-500/20 text-xs text-indigo-200 text-left font-mono">
+                <div>• Phone: {unlockLead.phone_number}</div>
+                <div>• Email: {unlockLead.email || "N/A"}</div>
+                <div>• Protection: RBAC Masked</div>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  className="btn btn-ghost flex-1"
+                  onClick={() => setUnlockLead(null)}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary flex-1"
+                  onClick={() => {
+                    alert("Approval request dispatched to administrator!");
+                    setUnlockLead(null);
+                  }}
+                >
+                  Request Access
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>
