@@ -134,6 +134,10 @@ export interface Lead {
   utm_medium: string | null;
   utm_campaign: string | null;
   user_agent: string | null;
+  // Returning-lead tracking fields
+  submission_count: number;
+  is_returning: boolean;
+  last_activity_at: string;
   created_at: string;
 }
 

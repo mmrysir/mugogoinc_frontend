@@ -85,13 +85,24 @@ function LeadSlideOver({
     ["Delivery Status", lead.delivery_status],
     ["CRM Status", lead.crm_forward_status.replace(/_/g, " ")],
     [
-      "Received",
+      "First Seen",
       new Date(lead.created_at).toLocaleString("en-KE", {
         dateStyle: "medium",
         timeStyle: "short",
       }),
     ],
+    [
+      "Last Activity",
+      new Date(lead.last_activity_at).toLocaleString("en-KE", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    ],
   ];
+
+  if (lead.is_returning) {
+    rows.push(["Submissions", `${lead.submission_count}x (Returning)`]);
+  }
 
   if (lead.utm_source) rows.push(["UTM Source", lead.utm_source]);
   if (lead.utm_medium) rows.push(["UTM Medium", lead.utm_medium]);
@@ -560,6 +571,31 @@ export default function BuLeadsPage() {
                           {lead.email}
                         </div>
                       )}
+                      {/* Returning Lead Badge */}
+                      {lead.is_returning && (
+                        <span
+                          className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-xs font-semibold"
+                          style={{
+                            background: "rgba(245,158,11,0.12)",
+                            color: "#fbbf24",
+                            border: "1px solid rgba(245,158,11,0.25)",
+                          }}
+                        >
+                          <span>🔁 Returning</span>
+                          <span
+                            style={{
+                              background: "rgba(245,158,11,0.22)",
+                              color: "#fde68a",
+                              padding: "0 5px",
+                              borderRadius: 99,
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                            }}
+                          >
+                            {lead.submission_count}x
+                          </span>
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className="font-mono text-xs">{lead.phone_number}</span>
@@ -575,7 +611,7 @@ export default function BuLeadsPage() {
                     </td>
                     <td>
                       <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
-                        {new Date(lead.created_at).toLocaleString("en-KE", {
+                        {new Date(lead.last_activity_at).toLocaleString("en-KE", {
                           dateStyle: "short",
                           timeStyle: "short",
                         })}
