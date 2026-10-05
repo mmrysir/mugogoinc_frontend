@@ -56,10 +56,11 @@ function resolveRange(
 
 // ── Lead Detail Modal ──────────────────────────────────────────────────────────
 
-function LeadDetail({ lead }: { lead: Lead }) {
+function LeadDetail({ lead, onClose }: { lead: Lead; onClose: () => void }) {
   return (
     <div className="modal-backdrop" onClick={(e) => e.stopPropagation()}>
       <div className="modal-box" style={{ maxWidth: 600 }}>
+        {/* ── Header ── */}
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
@@ -67,8 +68,30 @@ function LeadDetail({ lead }: { lead: Lead }) {
             </h2>
             <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>{lead.id}</span>
           </div>
-          <StatusBadge value={lead.delivery_status} />
+          <div className="flex items-center gap-2">
+            <StatusBadge value={lead.delivery_status} />
+            <button
+              id="lead-detail-close-x"
+              type="button"
+              onClick={onClose}
+              aria-label="Close lead detail"
+              style={{
+                background: "var(--bg-base)",
+                border: "1px solid var(--border)",
+                borderRadius: "0.5rem",
+                color: "var(--text-muted)",
+                cursor: "pointer",
+                padding: "0.25rem 0.5rem",
+                fontSize: "1rem",
+                lineHeight: 1,
+              }}
+            >
+              ✕
+            </button>
+          </div>
         </div>
+
+        {/* ── Contact Details ── */}
         <div className="space-y-2 mb-4">
           {[
             [<><Icon name="smartphone" className="mr-2" /> Phone</>, lead.phone_number],
@@ -84,12 +107,85 @@ function LeadDetail({ lead }: { lead: Lead }) {
             </div>
           ))}
         </div>
+
+        {/* ── Visitor Intelligence Card ── */}
+        {(lead.ip_address || lead.country || lead.city || lead.user_agent) && (
+          <div
+            className="rounded-xl p-4 mb-4"
+            style={{
+              background: "var(--bg-base)",
+              border: "1px solid var(--border)",
+            }}
+          >
+            <p
+              className="text-xs font-semibold uppercase tracking-widest mb-3 flex items-center gap-2"
+              style={{ color: "var(--text-muted)" }}
+            >
+              <Icon name="travel_explore" size="sm" />
+              Visitor Intelligence
+            </p>
+            <div className="grid gap-3 text-sm" style={{ gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <span className="block text-xs mb-0.5" style={{ color: "var(--text-muted)" }}>IP Address</span>
+                <span
+                  className="font-mono"
+                  style={{
+                    color: lead.is_blurred ? "var(--text-muted)" : "var(--accent-cyan)",
+                    fontSize: "0.8rem",
+                  }}
+                >
+                  {lead.ip_address || "—"}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs mb-0.5" style={{ color: "var(--text-muted)" }}>Location</span>
+                <span className="font-mono" style={{ color: "var(--text-primary)", fontSize: "0.8rem" }}>
+                  {lead.city && lead.country
+                    ? `${lead.city}, ${lead.country}`
+                    : lead.country || lead.city || "—"}
+                </span>
+              </div>
+              {lead.user_agent && (
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <span className="block text-xs mb-0.5" style={{ color: "var(--text-muted)" }}>User Agent</span>
+                  <span
+                    className="font-mono"
+                    style={{
+                      color: "var(--text-muted)",
+                      fontSize: "0.7rem",
+                      wordBreak: "break-all",
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {lead.user_agent}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Raw Payload Meta ── */}
         {Object.keys(lead.payload_meta).length > 0 && (
           <div className="rounded-xl p-3 text-xs font-mono overflow-auto"
             style={{ background: "var(--bg-base)", color: "var(--accent-cyan)", maxHeight: 160 }}>
             {JSON.stringify(lead.payload_meta, null, 2)}
           </div>
         )}
+
+        {/* ── Footer ── */}
+        <div className="flex justify-end mt-4 pt-4" style={{ borderTop: "1px solid var(--border)" }}>
+          <button
+            id="lead-detail-back-btn"
+            type="button"
+            onClick={onClose}
+            className="btn btn-primary"
+            style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }}
+          >
+            <Icon name="arrow_back" size="sm" />
+            Back to Lead List
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -340,7 +436,7 @@ function LeadFeedInner() {
 
       {selectedLead && (
         <div className="modal-backdrop" onClick={() => setSelectedLead(null)}>
-          <LeadDetail lead={selectedLead} />
+          <LeadDetail lead={selectedLead} onClose={() => setSelectedLead(null)} />
         </div>
       )}
     </>

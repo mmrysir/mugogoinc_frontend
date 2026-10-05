@@ -133,6 +133,10 @@ export interface Lead {
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
+  // Geo / Visitor Intelligence fields
+  ip_address: string | null;
+  country: string | null;
+  city: string | null;
   user_agent: string | null;
   // Returning-lead tracking fields
   submission_count: number;
