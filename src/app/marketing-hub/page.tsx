@@ -120,16 +120,16 @@ export default function MarketingHubPage() {
               <form onSubmit={handleKeywordSearch} className="space-y-4">
                 <div>
                   <label className="block text-xs mb-1 font-medium" style={{ color: "var(--text-muted)" }}>Seed Keywords (comma-separated)</label>
-                  <textarea value={seedInput} onChange={(e) => setSeedInput(e.target.value)} rows={3} className="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono" />
+                  <textarea value={seedInput} onChange={(e) => setSeedInput(e.target.value)} rows={3} className="w-full px-3 py-2 text-sm rounded-lg border font-mono focus:outline-none focus:ring-1 focus:ring-cyan-500" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border)", color: "var(--text-primary)" }} />
                 </div>
                 <div>
                   <label className="block text-xs mb-1 font-medium" style={{ color: "var(--text-muted)" }}>Target URL (Optional)</label>
-                  <input type="url" value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="https://example.com" className="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500" />
+                  <input type="url" value={pageUrl} onChange={(e) => setPageUrl(e.target.value)} placeholder="https://example.com" className="w-full px-3 py-2 text-sm rounded-lg border focus:outline-none focus:ring-1 focus:ring-cyan-500" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border)", color: "var(--text-primary)" }} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs mb-1 font-medium" style={{ color: "var(--text-muted)" }}>Location</label>
-                    <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100">
+                    <select value={locationId} onChange={(e) => setLocationId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
                       <option value="2840">United States</option>
                       <option value="2404">Kenya</option>
                       <option value="2834">Tanzania</option>
@@ -138,7 +138,7 @@ export default function MarketingHubPage() {
                   </div>
                   <div>
                     <label className="block text-xs mb-1 font-medium" style={{ color: "var(--text-muted)" }}>Language</label>
-                    <select value={languageId} onChange={(e) => setLanguageId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100">
+                    <select value={languageId} onChange={(e) => setLanguageId(e.target.value)} className="w-full px-3 py-2 text-sm rounded-lg border" style={{ backgroundColor: "var(--bg-base)", borderColor: "var(--border)", color: "var(--text-primary)" }}>
                       <option value="1000">English</option>
                       <option value="1014">Swahili</option>
                     </select>
@@ -159,7 +159,7 @@ export default function MarketingHubPage() {
                   <Icon name="analytics" /> KEYWORD IDEAS & METRICS
                 </h2>
                 {keywords.length > 0 && (
-                  <span className="text-xs px-2 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-mono border border-emerald-500/20">
+                  <span className="text-xs px-2 py-1 bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 rounded-full font-mono border border-cyan-500/20 font-bold">
                     {keywords.length} Results
                   </span>
                 )}
@@ -172,36 +172,36 @@ export default function MarketingHubPage() {
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-xs text-slate-300">
-                    <thead className="border-b border-slate-800 text-slate-400 uppercase font-mono">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b uppercase font-mono" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
                       <tr>
-                        <th className="pb-3 font-medium">Keyword Phrase</th>
-                        <th className="pb-3 font-medium">Monthly Searches</th>
-                        <th className="pb-3 font-medium">Competition</th>
-                        <th className="pb-3 font-medium">Low Bid (USD)</th>
-                        <th className="pb-3 font-medium">High Bid (USD)</th>
+                        <th className="pb-3 font-semibold">Keyword Phrase</th>
+                        <th className="pb-3 font-semibold">Monthly Searches</th>
+                        <th className="pb-3 font-semibold">Competition</th>
+                        <th className="pb-3 font-semibold">Low Bid (USD)</th>
+                        <th className="pb-3 font-semibold">High Bid (USD)</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y" style={{ borderColor: "var(--border)" }}>
                       {keywords.map((kw, i) => (
-                        <tr key={i} className="hover:bg-slate-900/50">
-                          <td className="py-3 font-semibold text-slate-100">{kw.keyword}</td>
-                          <td className="py-3 font-mono text-emerald-400">{kw.monthly_search_volume.toLocaleString()}</td>
+                        <tr key={i} className="hover:bg-black/5 dark:hover:bg-white/5">
+                          <td className="py-3 font-semibold" style={{ color: "var(--text-primary)" }}>{kw.keyword}</td>
+                          <td className="py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{kw.monthly_search_volume.toLocaleString()}</td>
                           <td className="py-3">
                             <span
                               className={`px-2 py-0.5 rounded text-2xs font-mono font-bold ${
                                 kw.competition === "HIGH"
-                                  ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                                  ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30"
                                   : kw.competition === "MEDIUM"
-                                  ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                                  : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                  ? "bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30"
+                                  : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30"
                               }`}
                             >
                               {kw.competition}
                             </span>
                           </td>
-                          <td className="py-3 font-mono text-slate-300">${kw.low_top_of_page_bid_usd}</td>
-                          <td className="py-3 font-mono text-slate-300">${kw.high_top_of_page_bid_usd}</td>
+                          <td className="py-3 font-mono font-medium" style={{ color: "var(--text-secondary)" }}>${kw.low_top_of_page_bid_usd}</td>
+                          <td className="py-3 font-mono font-medium" style={{ color: "var(--text-secondary)" }}>${kw.high_top_of_page_bid_usd}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -228,45 +228,45 @@ export default function MarketingHubPage() {
           </div>
 
           <div className="overflow-x-auto mb-6">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="border-b border-slate-800 text-slate-400 uppercase font-mono">
+            <table className="w-full text-left text-xs">
+              <thead className="border-b uppercase font-mono" style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}>
                 <tr>
-                  <th className="pb-3 font-medium">Campaign Name</th>
-                  <th className="pb-3 font-medium">Daily Spend</th>
-                  <th className="pb-3 font-medium">Daily Budget</th>
-                  <th className="pb-3 font-medium">Leads Captured</th>
-                  <th className="pb-3 font-medium">Calculated CPL</th>
-                  <th className="pb-3 font-medium">Burn Status</th>
+                  <th className="pb-3 font-semibold">Campaign Name</th>
+                  <th className="pb-3 font-semibold">Daily Spend</th>
+                  <th className="pb-3 font-semibold">Daily Budget</th>
+                  <th className="pb-3 font-semibold">Leads Captured</th>
+                  <th className="pb-3 font-semibold">Calculated CPL</th>
+                  <th className="pb-3 font-semibold">Burn Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y" style={{ borderColor: "var(--border)" }}>
                 {campaigns.map((c, i) => {
                   const cpl = c.leads_count > 0 ? (c.daily_spend_usd / c.leads_count).toFixed(2) : "N/A";
                   const isExhausted = c.daily_spend_usd >= c.daily_budget_usd * 0.95;
                   const isHighCpl = c.leads_count > 0 && parseFloat(cpl as string) > 15.0;
 
                   return (
-                    <tr key={i} className="hover:bg-slate-900/50">
-                      <td className="py-3 font-semibold text-slate-100">{c.campaign_name}</td>
-                      <td className="py-3 font-mono text-slate-300">${c.daily_spend_usd.toFixed(2)}</td>
-                      <td className="py-3 font-mono text-slate-400">${c.daily_budget_usd.toFixed(2)}</td>
-                      <td className="py-3 font-mono text-emerald-400">{c.leads_count}</td>
+                    <tr key={i} className="hover:bg-black/5 dark:hover:bg-white/5">
+                      <td className="py-3 font-semibold" style={{ color: "var(--text-primary)" }}>{c.campaign_name}</td>
+                      <td className="py-3 font-mono font-medium" style={{ color: "var(--text-secondary)" }}>${c.daily_spend_usd.toFixed(2)}</td>
+                      <td className="py-3 font-mono" style={{ color: "var(--text-muted)" }}>${c.daily_budget_usd.toFixed(2)}</td>
+                      <td className="py-3 font-mono font-bold text-emerald-600 dark:text-emerald-400">{c.leads_count}</td>
                       <td className="py-3 font-mono">
-                        <span className={isHighCpl ? "text-rose-400 font-bold" : "text-emerald-400"}>
+                        <span className={isHighCpl ? "text-rose-600 dark:text-rose-400 font-bold" : "text-emerald-600 dark:text-emerald-400 font-bold"}>
                           ${cpl}
                         </span>
                       </td>
                       <td className="py-3">
                         {isExhausted ? (
-                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
                             BUDGET EXHAUSTED EARLY
                           </span>
                         ) : isHighCpl ? (
-                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-amber-500/15 text-amber-800 dark:text-amber-300 border border-amber-500/30">
                             HIGH CPL ALERT
                           </span>
                         ) : (
-                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-emerald-500/15 text-emerald-800 dark:text-emerald-300 border border-emerald-500/30">
                             HEALTHY
                           </span>
                         )}

@@ -113,6 +113,11 @@ export interface BusinessUnit {
   webhook_url: string | null;
   owner_whatsapp_number: string;
   owner_email: string;
+  primary_url?: string | null;
+  social_media_links?: string | null;
+  google_ads_customer_id?: string | null;
+  target_country?: string | null;
+  target_language?: string | null;
   created_at: string;
 }
 
@@ -264,10 +269,16 @@ export const api = {
   },
 
   marketing: {
-    searchKeywords: (seedKeywords: string[], locationId?: string, language?: string, pageUrl?: string) =>
+    searchKeywords: (seedKeywords: string[], locationId?: string, language?: string, pageUrl?: string, businessUnitId?: string) =>
       request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
         method: "POST",
-        body: JSON.stringify({ seed_keywords: seedKeywords, location_id: locationId, language, page_url: pageUrl }),
+        body: JSON.stringify({
+          seed_keywords: seedKeywords,
+          location_id: locationId,
+          language,
+          page_url: pageUrl,
+          business_unit_id: businessUnitId,
+        }),
       }),
     getAccountDiagnostics: () =>
       request<{ status: string; data: any }>("/marketing/account/diagnostics"),
@@ -322,6 +333,11 @@ export const api = {
     update: (id: string, body: Partial<BusinessUnit>) =>
       request<BusinessUnit>(`/business-units/${id}`, {
         method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    updateProfile: (id: string, body: Partial<BusinessUnit>) =>
+      request<BusinessUnit>(`/business-units/${id}/profile`, {
+        method: "PUT",
         body: JSON.stringify(body),
       }),
     delete: (id: string) =>
