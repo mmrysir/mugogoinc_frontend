@@ -264,11 +264,13 @@ export const api = {
   },
 
   marketing: {
-    searchKeywords: (seedKeywords: string[]) =>
+    searchKeywords: (seedKeywords: string[], locationId?: string, language?: string, pageUrl?: string) =>
       request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
         method: "POST",
-        body: JSON.stringify({ seed_keywords: seedKeywords }),
+        body: JSON.stringify({ seed_keywords: seedKeywords, location_id: locationId, language, page_url: pageUrl }),
       }),
+    getAccountDiagnostics: () =>
+      request<{ status: string; data: any }>("/marketing/account/diagnostics"),
     checkCampaignHealth: (campaigns: CampaignMetric[], recipientPhone?: string) =>
       request<{ checked_at: string; total_campaigns_checked: number; alerts_count: number; alerts: string[] }>(
         `/marketing/campaigns/check-health${recipientPhone ? `?recipient_phone=${recipientPhone}` : ""}`,
