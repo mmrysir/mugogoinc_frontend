@@ -262,11 +262,13 @@ export default function OrgDetailPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingBu, setEditingBu] = useState<BusinessUnit | null>(null);
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const canEdit = user?.role === "SUPER_ADMIN" || user?.role === "MANAGER";
 
   const fetchData = useCallback(async () => {
     try {
+      setError(null);
       const [orgData, buData, statsData, userData] = await Promise.all([
         api.organizations.get(orgId),
         api.businessUnits.list(orgId),
@@ -277,8 +279,8 @@ export default function OrgDetailPage() {
       setBus(buData.items);
       setStats(statsData);
       setUser(userData);
-    } catch {
-      setLoading(false);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to load organization details.");
     } finally {
       setLoading(false);
     }
@@ -310,6 +312,12 @@ export default function OrgDetailPage() {
         </div>
 
         {loading && <div className="text-center py-16" style={{ color: "var(--text-muted)" }}>Loading…</div>}
+
+        {error && (
+          <div className="card mb-6" style={{ borderColor: "rgba(244,63,94,0.3)", background: "rgba(244,63,94,0.06)" }}>
+            <p className="text-sm" style={{ color: "#fb7185" }}><Icon name="warning" className="mr-2" /> {error}</p>
+          </div>
+        )}
 
         {org && (
           <>
@@ -385,41 +393,48 @@ export default function OrgDetailPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-slide-up">
                 {bus.map((bu) => (
                   <div key={bu.id} className="card">
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <h3 className="font-bold mb-1" style={{ color: "var(--text-primary)" }}>{bu.name}</h3>
-                        <RouteTypeBadge type={bu.route_type} />
-                      </div>
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/leads?business_unit_id=${bu.id}`}
-                          className="btn btn-ghost"
-                          style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
-                        >
-                          Leads →
-                        </Link>
-                        {canEdit && (
-                          <button
-                            type="button"
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="font-bold mb-1" style={{ color: "var(--text-primary)" }}>{bu.name}</h3>
+                          <RouteTypeBadge type={bu.route_type} />
+                        </div>
+                        <div className="flex gap-2 flex-wrap justify-end">
+                          <Link
+                            href={`/organizations/${orgId}/business-units/${bu.id}`}
+                            className="btn btn-primary"
+                            style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                          >
+                            Command Center →
+                          </Link>
+                          <Link
+                            href={`/leads?business_unit_id=${bu.id}`}
                             className="btn btn-ghost"
                             style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
-                            onClick={() => { setEditingBu(bu); setShowModal(true); }}
                           >
-                            Edit
-                          </button>
-                        )}
-                        {user?.role === "SUPER_ADMIN" && (
-                          <button
-                            type="button"
-                            className="btn btn-ghost"
-                            style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem", color: "#ef4444" }}
-                            onClick={() => handleDeleteBu(bu)}
-                          >
-                            Delete
-                          </button>
-                        )}
+                            Leads →
+                          </Link>
+                          {canEdit && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                              onClick={() => { setEditingBu(bu); setShowModal(true); }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {user?.role === "SUPER_ADMIN" && (
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem", color: "#ef4444" }}
+                              onClick={() => handleDeleteBu(bu)}
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
                       </div>
-                    </div>
                     <div className="space-y-1.5 mt-3">
                       <div className="flex gap-2 text-xs" style={{ color: "var(--text-muted)" }}>
                         <Icon name="smartphone" className="mr-1" />

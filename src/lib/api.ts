@@ -116,6 +116,7 @@ export interface BusinessUnit {
   primary_url?: string | null;
   social_media_links?: string | null;
   google_ads_customer_id?: string | null;
+  google_search_console_site?: string | null;
   target_country?: string | null;
   target_language?: string | null;
   created_at: string;
