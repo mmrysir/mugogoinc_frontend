@@ -46,6 +46,10 @@ jobs:
             cd /var/www/mugogoinc/mugogoinc_frontend
 
             echo "--> Pulling latest code from main"
+            if ! git diff --quiet -- .env.production; then
+              echo "--> Preserving server-local .env.production before updating code"
+              git -c user.name="Production deploy" -c user.email="production-deploy@localhost" stash push --message "Preserve server-local .env.production before deploy" -- .env.production
+            fi
             git pull origin main
             test -n "$NEXT_PUBLIC_API_URL" || { echo "NEXT_PUBLIC_API_URL was not provided"; exit 1; }
 
