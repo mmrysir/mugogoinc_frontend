@@ -66,7 +66,7 @@ export default function DashboardPage() {
       setStats(data);
       setError(null);
     } catch {
-      setError("Cannot reach API. Is the backend running at port 8000?");
+      setError("Cannot reach the API. Check the backend service and network connection.");
     } finally {
       setLoading(false);
     }

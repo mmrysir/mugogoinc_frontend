@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import Icon from "@/components/Icon";
-import { api } from "@/lib/api";
+import { getApiBaseUrl } from "@/lib/api";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -76,7 +76,7 @@ export default function OnboardingPage() {
       setResult(null);
 
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1"}/onboarding/analyze-entity`,
+        `${getApiBaseUrl()}/onboarding/analyze-entity`,
         {
           method: "POST",
           headers: {

@@ -26,7 +26,7 @@ export default function BlogAdminPage() {
       setPosts(res.posts);
       setError(null);
     } catch {
-      setError("Cannot reach Mugogo Engine API at port 8000.");
+      setError("Cannot reach the Mugogo Engine API. Check the backend service and network connection.");
     } finally {
       setLoading(false);
     }

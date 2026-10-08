@@ -1,11 +1,14 @@
 const DEFAULT_API_BASE = "http://127.0.0.1:8000/api/v1";
 const TOKEN_STORAGE_KEY = "mugogo_access_token";
 
-function resolveApiBase(): string {
+export function getApiBaseUrl(): string {
   const configured =
     process.env.NEXT_PUBLIC_API_URL?.trim() ||
     process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
+  if (configured) {
+    const baseUrl = configured.replace(/\/+$/, "");
+    return /\/api\/v1$/i.test(baseUrl) ? baseUrl : `${baseUrl}/api/v1`;
+  }
   return DEFAULT_API_BASE;
 }
 
@@ -25,7 +28,7 @@ export function clearAccessToken(): void {
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const baseUrl = resolveApiBase();
+  const baseUrl = getApiBaseUrl();
   const url = `${baseUrl}${path}`;
   const token = getAccessToken();
 
@@ -417,4 +420,3 @@ export const api = {
     me: () => request<AuthUser>("/auth/me"),
   },
 };
-

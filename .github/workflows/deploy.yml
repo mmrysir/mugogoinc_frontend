@@ -20,18 +20,23 @@ jobs:
 
       - name: Install Dependencies & Build (CI Check)
         env:
-          NEXT_PUBLIC_API_URL: https://api.mugogoinc.com
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         run: |
+          test -n "$NEXT_PUBLIC_API_URL" || { echo "NEXT_PUBLIC_API_URL secret is required"; exit 1; }
           npm ci
           npm run build
 
       - name: Deploy to Production Server via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL }}
         with:
           host: ${{ secrets.SERVER_HOST || secrets.SSH_HOST }}
           username: ${{ secrets.SERVER_USER || secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY || secrets.SSH_KEY }}
+          envs: NEXT_PUBLIC_API_URL
           script: |
+            set -euo pipefail
             # Load environment PATH for NVM, Node, and PM2
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
@@ -42,12 +47,32 @@ jobs:
 
             echo "--> Pulling latest code from main"
             git pull origin main
+            test -n "$NEXT_PUBLIC_API_URL" || { echo "NEXT_PUBLIC_API_URL was not provided"; exit 1; }
 
             echo "--> Installing dependencies & Building Next.js production bundle"
             npm ci
+            cat > .env.local << ENVEOF
+            NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+            ENVEOF
             npm run build
 
             echo "--> Restarting Next.js on Port 3002 via PM2"
-            pm2 delete mugogoinc-frontend 2>/dev/null || true
-            pm2 start npm --name "mugogoinc-frontend" --cwd "/var/www/mugogoinc/mugogoinc_frontend" -- start
+            if pm2 describe mugogo-web > /dev/null 2>&1; then
+              pm2 delete mugogo-web
+            fi
+            if pm2 describe mugogoinc-frontend > /dev/null 2>&1; then
+              pm2 restart mugogoinc-frontend --update-env
+            else
+              pm2 start npm --name "mugogoinc-frontend" --cwd "/var/www/mugogoinc/mugogoinc_frontend" -- start
+            fi
             pm2 save
+
+            for i in 1 2 3; do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3002/)
+              if [ "$STATUS" = "200" ]; then
+                exit 0
+              fi
+              sleep 3
+            done
+            echo "Frontend health check failed"
+            exit 1
