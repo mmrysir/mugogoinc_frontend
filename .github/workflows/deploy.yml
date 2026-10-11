@@ -65,18 +65,29 @@ jobs:
               pm2 delete mugogo-web
             fi
             if pm2 describe mugogoinc-frontend > /dev/null 2>&1; then
-              pm2 restart mugogoinc-frontend --update-env
+              # PORT env var ensures next start binds to 3002 even if pm2 config drifts
+              PORT=3002 pm2 restart mugogoinc-frontend --update-env
             else
-              pm2 start npm --name "mugogoinc-frontend" --cwd "/var/www/mugogoinc/mugogoinc_frontend" -- start
+              PORT=3002 pm2 start npm --name "mugogoinc-frontend" --cwd "/var/www/mugogoinc/mugogoinc_frontend" -- start
             fi
             pm2 save
 
-            for i in 1 2 3; do
-              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3002/)
+            # ── Health check ─────────────────────────────────────────────────────
+            # Wait for Next.js cold boot (typically 8–15 s after PM2 restart).
+            echo "--> Waiting 10s for Next.js to boot..."
+            sleep 10
+
+            # Shield curl from set -e: curl exit 7 (connection refused) must NOT
+            # kill the script — the retry loop handles transient failures.
+            for i in $(seq 1 12); do
+              STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3002/ || echo "000")
               if [ "$STATUS" = "200" ]; then
+                echo "--> Health check passed on attempt $i (HTTP 200)"
                 exit 0
               fi
-              sleep 3
+              echo "--> Attempt $i/12: got HTTP $STATUS — retrying in 5s..."
+              sleep 5
             done
-            echo "Frontend health check failed"
+            echo "ERROR: Frontend health check failed after 12 attempts (60s)."
+            pm2 logs mugogoinc-frontend --lines 50 --nostream || true
             exit 1
