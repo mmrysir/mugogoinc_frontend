@@ -103,6 +103,7 @@ export interface TokenResponse {
 export interface Organization {
   id: string;
   name: string;
+  slug?: string;
   status: OrgStatus;
   assigned_agent_id: string | null;
   created_at: string;
@@ -318,6 +319,38 @@ export const api = {
       request<Organization>(`/organizations/${id}/assign-agent`, {
         method: "PATCH",
         body: JSON.stringify({ agent_id: agentId }),
+      }),
+  },
+
+  onboarding: {
+    setup: (body: {
+      org_name: string;
+      org_slug?: string;
+      website_url: string;
+      bu_name?: string;
+      owner_whatsapp_number: string;
+      owner_email: string;
+      google_ads_customer_id?: string;
+      google_search_console_site?: string;
+      social_media_links?: string;
+      target_country?: string;
+      target_language?: string;
+    }) =>
+      request<{
+        status: string;
+        message: string;
+        org_id: string;
+        org_slug: string;
+        bu_id: string;
+        data?: any;
+      }>("/onboarding/setup", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    analyzeEntity: (body: { org_id: string; website_url: string; customer_id?: string }) =>
+      request<any>("/onboarding/analyze-entity", {
+        method: "POST",
+        body: JSON.stringify(body),
       }),
   },
 
