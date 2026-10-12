@@ -283,8 +283,8 @@ export default function BuCommandCenterPage() {
   const [negativeKeywords, setNegativeKeywords] = useState("");
   const [scrapedData, setScrapedData] = useState<ScrapedMetadata | null>(null);
   const [scrapingLoading, setScrapingLoading] = useState(false);
-  const [keywordLocation, setKeywordLocation] = useState("Kenya");
-  const [keywordLanguage, setKeywordLanguage] = useState("English");
+  const [keywordLocations, setKeywordLocations] = useState<string[]>(["Kenya"]);
+  const [keywordLanguages, setKeywordLanguages] = useState<string[]>(["English"]);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -358,6 +358,43 @@ export default function BuCommandCenterPage() {
     setTimeout(() => setWebhookCopied(false), 2000);
   };
 
+  const AVAILABLE_LOCATIONS = [
+    "Kenya", "Nigeria", "South Africa", "Uganda", "Tanzania",
+    "Ethiopia", "Ghana", "United States", "United Kingdom",
+    "Canada", "Australia", "India", "Germany", "France", "UAE", "Global",
+  ];
+
+  const AVAILABLE_LANGUAGES = [
+    "English", "Swahili", "French", "Spanish", "German", "Arabic", "Hindi", "Portuguese",
+  ];
+
+  const REGION_PRESETS: Record<string, { locations: string[]; languages: string[] }> = {
+    "🌍 East Africa": { locations: ["Kenya", "Uganda", "Tanzania"], languages: ["English", "Swahili"] },
+    "🌎 N. America":  { locations: ["United States", "Canada"],       languages: ["English"] },
+    "🌐 Global":      { locations: ["Kenya", "United States", "United Kingdom"], languages: ["English"] },
+    "🌍 W. Africa":   { locations: ["Nigeria", "Ghana"],              languages: ["English"] },
+  };
+
+  const toggleLocation = (loc: string) => {
+    setKeywordLocations((prev) =>
+      prev.includes(loc) ? (prev.length > 1 ? prev.filter((l) => l !== loc) : prev) : [...prev, loc]
+    );
+  };
+
+  const toggleLanguage = (lang: string) => {
+    setKeywordLanguages((prev) =>
+      prev.includes(lang) ? (prev.length > 1 ? prev.filter((l) => l !== lang) : prev) : [...prev, lang]
+    );
+  };
+
+  const applyPreset = (key: string) => {
+    const preset = REGION_PRESETS[key];
+    if (preset) {
+      setKeywordLocations(preset.locations);
+      setKeywordLanguages(preset.languages);
+    }
+  };
+
   const runKeywords = async () => {
     if (!bu) return;
     setKeywordsLoading(true);
@@ -373,8 +410,8 @@ export default function BuCommandCenterPage() {
         .filter(Boolean);
       const result = await api.marketing.searchKeywords(
         seeds,
-        keywordLocation,
-        keywordLanguage,
+        keywordLocations,
+        keywordLanguages,
         bu.primary_url ?? undefined,
         buId,
         undefined,
@@ -690,13 +727,13 @@ export default function BuCommandCenterPage() {
                       className="text-xs px-2.5 py-1 rounded-full"
                       style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80" }}
                     >
-                      📍 {keywordLocation}
+                      📍 {keywordLocations.length === 1 ? keywordLocations[0] : `${keywordLocations.length} Countries`}
                     </span>
                     <span
                       className="text-xs px-2.5 py-1 rounded-full"
                       style={{ background: "rgba(251,191,36,0.1)", color: "#fbbf24" }}
                     >
-                      🌐 {keywordLanguage}
+                      🌐 {keywordLanguages.length === 1 ? keywordLanguages[0] : `${keywordLanguages.length} Languages`}
                     </span>
                     {!bu.primary_url && !bu.google_ads_customer_id && (
                       <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>
@@ -785,61 +822,88 @@ export default function BuCommandCenterPage() {
                     </div>
                   )}
 
-                  {/* Location & Language selectors */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div>
-                      <label className="form-label">Target Location</label>
-                      <select
-                        id="keyword-location-select"
-                        className="form-input"
-                        value={keywordLocation}
-                        onChange={(e) => setKeywordLocation(e.target.value)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {[
-                          "Kenya",
-                          "Nigeria",
-                          "South Africa",
-                          "Uganda",
-                          "Tanzania",
-                          "Ethiopia",
-                          "Ghana",
-                          "United States",
-                          "United Kingdom",
-                          "Canada",
-                          "Australia",
-                          "India",
-                          "Germany",
-                          "France",
-                          "UAE",
-                          "Global",
-                        ].map((loc) => (
-                          <option key={loc} value={loc}>{loc}</option>
-                        ))}
-                      </select>
+                  {/* Multi-Region & Multi-Language Badge Pickers */}
+                  <div className="mb-4">
+                    {/* Preset Row */}
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="text-2xs font-medium" style={{ color: "var(--text-muted)" }}>Quick Presets:</span>
+                      {Object.keys(REGION_PRESETS).map((label) => (
+                        <button
+                          key={label}
+                          onClick={() => applyPreset(label)}
+                          className="text-2xs px-2 py-0.5 rounded border transition-colors"
+                          style={{
+                            borderColor: "var(--border)",
+                            color: "var(--text-secondary)",
+                            background: "var(--bg-elevated)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          {label}
+                        </button>
+                      ))}
                     </div>
+
+                    {/* Location Picker */}
+                    <div className="mb-3">
+                      <label className="form-label mb-1.5">
+                        Target Locations
+                        <span className="ml-1.5 text-2xs font-normal" style={{ color: "var(--text-muted)" }}>
+                          ({keywordLocations.length} selected)
+                        </span>
+                      </label>
+                      <div className="flex flex-wrap gap-1.5" id="keyword-location-picker">
+                        {AVAILABLE_LOCATIONS.map((loc) => {
+                          const active = keywordLocations.includes(loc);
+                          return (
+                            <button
+                              key={loc}
+                              onClick={() => toggleLocation(loc)}
+                              className="text-xs px-2.5 py-1 rounded-full border transition-all"
+                              style={{
+                                borderColor: active ? "#06b6d4" : "var(--border)",
+                                background: active ? "rgba(6,182,212,0.15)" : "var(--bg-elevated)",
+                                color: active ? "#22d3ee" : "var(--text-muted)",
+                                cursor: "pointer",
+                                fontWeight: active ? 600 : 400,
+                              }}
+                            >
+                              {active ? "✓ " : ""}{loc}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Language Picker */}
                     <div>
-                      <label className="form-label">Language</label>
-                      <select
-                        id="keyword-language-select"
-                        className="form-input"
-                        value={keywordLanguage}
-                        onChange={(e) => setKeywordLanguage(e.target.value)}
-                        style={{ cursor: "pointer" }}
-                      >
-                        {[
-                          "English",
-                          "Swahili",
-                          "French",
-                          "Spanish",
-                          "German",
-                          "Arabic",
-                          "Hindi",
-                          "Portuguese",
-                        ].map((lang) => (
-                          <option key={lang} value={lang}>{lang}</option>
-                        ))}
-                      </select>
+                      <label className="form-label mb-1.5">
+                        Languages
+                        <span className="ml-1.5 text-2xs font-normal" style={{ color: "var(--text-muted)" }}>
+                          ({keywordLanguages.length} selected)
+                        </span>
+                      </label>
+                      <div className="flex flex-wrap gap-1.5" id="keyword-language-picker">
+                        {AVAILABLE_LANGUAGES.map((lang) => {
+                          const active = keywordLanguages.includes(lang);
+                          return (
+                            <button
+                              key={lang}
+                              onClick={() => toggleLanguage(lang)}
+                              className="text-xs px-2.5 py-1 rounded-full border transition-all"
+                              style={{
+                                borderColor: active ? "#a855f7" : "var(--border)",
+                                background: active ? "rgba(168,85,247,0.12)" : "var(--bg-elevated)",
+                                color: active ? "#c084fc" : "var(--text-muted)",
+                                cursor: "pointer",
+                                fontWeight: active ? 600 : 400,
+                              }}
+                            >
+                              {active ? "✓ " : ""}{lang}
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
 

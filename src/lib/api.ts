@@ -323,25 +323,40 @@ export const api = {
   marketing: {
     searchKeywords: (
       seedKeywords: string[],
-      locationName?: string,
-      languageName?: string,
+      locationNameOrNames?: string | string[],
+      languageNameOrNames?: string | string[],
       pageUrl?: string,
       businessUnitId?: string,
       locationId?: string,  // raw numeric fallback (legacy)
       negativeKeywords?: string[],
-    ) =>
-      request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
+    ) => {
+      const locNames = Array.isArray(locationNameOrNames)
+        ? locationNameOrNames
+        : locationNameOrNames
+        ? [locationNameOrNames]
+        : undefined;
+
+      const langNames = Array.isArray(languageNameOrNames)
+        ? languageNameOrNames
+        : languageNameOrNames
+        ? [languageNameOrNames]
+        : undefined;
+
+      return request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
         method: "POST",
         body: JSON.stringify({
           seed_keywords: seedKeywords,
           negative_keywords: negativeKeywords ?? [],
-          location_name: locationName,
-          language_name: languageName,
+          location_names: locNames,
+          language_names: langNames,
+          location_name: typeof locationNameOrNames === "string" ? locationNameOrNames : undefined,
+          language_name: typeof languageNameOrNames === "string" ? languageNameOrNames : undefined,
           location_id: locationId ?? undefined,
           page_url: pageUrl,
           business_unit_id: businessUnitId,
         }),
-      }),
+      });
+    },
     scrapePreview: (url: string) =>
       request<ScrapedMetadata>("/marketing/scrape-preview", {
         method: "POST",
