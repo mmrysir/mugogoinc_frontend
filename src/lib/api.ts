@@ -274,17 +274,29 @@ export const api = {
   },
 
   marketing: {
-    searchKeywords: (seedKeywords: string[], locationId?: string, language?: string, pageUrl?: string, businessUnitId?: string) =>
+    searchKeywords: (
+      seedKeywords: string[],
+      locationName?: string,
+      languageName?: string,
+      pageUrl?: string,
+      businessUnitId?: string,
+      locationId?: string,  // raw numeric fallback (legacy)
+    ) =>
       request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
         method: "POST",
         body: JSON.stringify({
           seed_keywords: seedKeywords,
-          location_id: locationId,
-          language,
+          location_name: locationName,
+          language_name: languageName,
+          location_id: locationId ?? undefined,
           page_url: pageUrl,
           business_unit_id: businessUnitId,
         }),
       }),
+    getKeywordLocations: () =>
+      request<{ locations: { name: string; id: string }[]; languages: { name: string; id: string }[] }>(
+        "/marketing/keywords/locations"
+      ),
     getAccountDiagnostics: () =>
       request<{ status: string; data: any }>("/marketing/account/diagnostics"),
     checkCampaignHealth: (campaigns: CampaignMetric[], recipientPhone?: string) =>

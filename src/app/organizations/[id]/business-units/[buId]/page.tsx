@@ -279,6 +279,8 @@ export default function BuCommandCenterPage() {
   const [keywordsLoading, setKeywordsLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
   const [keywordSeeds, setKeywordSeeds] = useState("");
+  const [keywordLocation, setKeywordLocation] = useState("Kenya");
+  const [keywordLanguage, setKeywordLanguage] = useState("English");
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -348,8 +350,8 @@ export default function BuCommandCenterPage() {
         .filter(Boolean);
       const result = await api.marketing.searchKeywords(
         seeds,
-        bu.target_country ?? "2404",
-        bu.target_language ?? "1000",
+        keywordLocation,
+        keywordLanguage,
         bu.primary_url ?? undefined,
         buId,
       );
@@ -659,6 +661,18 @@ export default function BuCommandCenterPage() {
                         📊 Ads ID: {bu.google_ads_customer_id}
                       </span>
                     )}
+                    <span
+                      className="text-xs px-2.5 py-1 rounded-full"
+                      style={{ background: "rgba(34,197,94,0.1)", color: "#4ade80" }}
+                    >
+                      📍 {keywordLocation}
+                    </span>
+                    <span
+                      className="text-xs px-2.5 py-1 rounded-full"
+                      style={{ background: "rgba(251,191,36,0.1)", color: "#fbbf24" }}
+                    >
+                      🌐 {keywordLanguage}
+                    </span>
                     {!bu.primary_url && !bu.google_ads_customer_id && (
                       <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>
                         Edit the Business Profile to pre-fill URL and Ads account.
@@ -666,9 +680,67 @@ export default function BuCommandCenterPage() {
                     )}
                   </div>
 
+                  {/* Location & Language selectors */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div>
+                      <label className="form-label">Target Location</label>
+                      <select
+                        id="keyword-location-select"
+                        className="form-input"
+                        value={keywordLocation}
+                        onChange={(e) => setKeywordLocation(e.target.value)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {[
+                          "Kenya",
+                          "Nigeria",
+                          "South Africa",
+                          "Uganda",
+                          "Tanzania",
+                          "Ethiopia",
+                          "Ghana",
+                          "United States",
+                          "United Kingdom",
+                          "Canada",
+                          "Australia",
+                          "India",
+                          "Germany",
+                          "France",
+                          "UAE",
+                          "Global",
+                        ].map((loc) => (
+                          <option key={loc} value={loc}>{loc}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label">Language</label>
+                      <select
+                        id="keyword-language-select"
+                        className="form-input"
+                        value={keywordLanguage}
+                        onChange={(e) => setKeywordLanguage(e.target.value)}
+                        style={{ cursor: "pointer" }}
+                      >
+                        {[
+                          "English",
+                          "Swahili",
+                          "French",
+                          "Spanish",
+                          "German",
+                          "Arabic",
+                          "Hindi",
+                          "Portuguese",
+                        ].map((lang) => (
+                          <option key={lang} value={lang}>{lang}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   <div className="flex gap-3 mb-4">
                     <div className="flex-1">
-                      <label className="form-label">Seed Keywords</label>
+                      <label className="form-label">Seed Keywords (one per line)</label>
                       <textarea
                         className="form-input"
                         rows={3}
