@@ -110,6 +110,7 @@ function EditProfileModal({
 }) {
   const [primaryUrl, setPrimaryUrl] = useState(bu.primary_url ?? "");
   const [gscSite, setGscSite] = useState(bu.google_search_console_site ?? "");
+  const [placeId, setPlaceId] = useState(bu.google_business_place_id ?? "");
   const [googleMapUrl, setGoogleMapUrl] = useState(bu.google_business_map_url ?? "");
   const [googleRating, setGoogleRating] = useState(
     bu.google_business_rating ? String(bu.google_business_rating) : ""
@@ -132,6 +133,7 @@ function EditProfileModal({
       const updated = await api.businessUnits.updateProfile(bu.id, {
         primary_url: primaryUrl || null,
         google_search_console_site: gscSite || null,
+        google_business_place_id: placeId || null,
         google_business_map_url: googleMapUrl || null,
         google_business_rating: googleRating ? parseFloat(googleRating) : null,
         google_business_review_count: googleReviews ? parseInt(googleReviews, 10) : null,
@@ -192,6 +194,20 @@ function EditProfileModal({
             />
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
               Must be a verified property in your GSC account.
+            </p>
+          </div>
+
+          {/* Google Business Place ID */}
+          <div>
+            <label className="form-label">Google Places / Place ID</label>
+            <input
+              className="form-input"
+              value={placeId}
+              onChange={(e) => setPlaceId(e.target.value)}
+              placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
+            />
+            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+              Used to query live reviews and ratings via Google Places API.
             </p>
           </div>
 
@@ -380,6 +396,7 @@ export default function BuCommandCenterPage() {
   const [webhookCopied, setWebhookCopied] = useState(false);
   const [discoveringSocials, setDiscoveringSocials] = useState(false);
   const [socialSuccessMessage, setSocialSuccessMessage] = useState("");
+  const [syncingGbp, setSyncingGbp] = useState(false);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -404,6 +421,26 @@ export default function BuCommandCenterPage() {
       alert(err instanceof Error ? err.message : "Social discovery failed");
     } finally {
       setDiscoveringSocials(false);
+    }
+  };
+
+  const handleSyncGBP = async () => {
+    if (!bu) return;
+    if (!bu.google_business_place_id) {
+      alert("Please add a Google Places / Place ID in your Business Profile first.");
+      setShowEditModal(true);
+      return;
+    }
+    setSyncingGbp(true);
+    try {
+      const res = await api.businessUnits.syncGbp(buId);
+      if (res.status === "success") {
+        await fetchData();
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Google Places synchronization failed");
+    } finally {
+      setSyncingGbp(false);
     }
   };
 
@@ -736,6 +773,9 @@ export default function BuCommandCenterPage() {
                   businessUnit={bu}
                   onDiscoverSocials={handleDiscoverSocials}
                   loadingDiscovery={discoveringSocials}
+                  onSyncGbp={handleSyncGBP}
+                  loadingSyncGbp={syncingGbp}
+                  onEditProfile={() => setShowEditModal(true)}
                 />
 
                 {/* ── Google Search Console Card (below Lead Ingestion) ────── */}

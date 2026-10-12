@@ -125,7 +125,7 @@ export interface BusinessUnit {
   google_business_map_url?: string | null;
   google_business_rating?: number | null;
   google_business_review_count?: number | null;
-  digital_footprint_metrics?: string | null;
+  digital_footprint_metrics?: Record<string, any> | string | null;
   target_country?: string | null;
   target_language?: string | null;
   created_at: string;
@@ -468,8 +468,27 @@ export const api = {
         status: string;
         business_unit_id: string;
         social_media_links: Record<string, string>;
+        google_business_rating?: number | null;
+        google_business_review_count?: number | null;
+        google_business_map_url?: string | null;
+        digital_footprint_metrics?: Record<string, any> | string | null;
         raw_social_links_str?: string | null;
       }>(`/business-units/${id}/discover-socials`, {
+        method: "POST",
+      }),
+    syncGbp: (id: string) =>
+      request<{
+        status: string;
+        data?: {
+          place_id: string;
+          name?: string;
+          rating?: number;
+          review_count?: number;
+          business_status?: string;
+          map_url?: string;
+        };
+        business_unit: Partial<BusinessUnit>;
+      }>(`/business-units/${id}/sync-gbp`, {
         method: "POST",
       }),
     delete: (id: string) =>
