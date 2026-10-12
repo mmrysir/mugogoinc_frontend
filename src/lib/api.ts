@@ -121,6 +121,11 @@ export interface BusinessUnit {
   social_media_links?: string | null;
   google_ads_customer_id?: string | null;
   google_search_console_site?: string | null;
+  google_business_place_id?: string | null;
+  google_business_map_url?: string | null;
+  google_business_rating?: number | null;
+  google_business_review_count?: number | null;
+  digital_footprint_metrics?: string | null;
   target_country?: string | null;
   target_language?: string | null;
   created_at: string;

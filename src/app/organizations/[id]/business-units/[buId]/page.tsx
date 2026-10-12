@@ -17,6 +17,7 @@ import { RouteTypeBadge, StatusBadge, ChannelBadge } from "@/components/Badges";
 import Icon from "@/components/Icon";
 import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
 import { REGION_PRESETS, AVAILABLE_LOCATIONS, AVAILABLE_LANGUAGES } from "@/constants/regions";
+import BrandIntelligenceCard from "@/components/BrandIntelligenceCard";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -109,6 +110,13 @@ function EditProfileModal({
 }) {
   const [primaryUrl, setPrimaryUrl] = useState(bu.primary_url ?? "");
   const [gscSite, setGscSite] = useState(bu.google_search_console_site ?? "");
+  const [googleMapUrl, setGoogleMapUrl] = useState(bu.google_business_map_url ?? "");
+  const [googleRating, setGoogleRating] = useState(
+    bu.google_business_rating ? String(bu.google_business_rating) : ""
+  );
+  const [googleReviews, setGoogleReviews] = useState(
+    bu.google_business_review_count ? String(bu.google_business_review_count) : ""
+  );
   const [socialLinks, setSocialLinks] = useState(bu.social_media_links ?? "");
   const [adsId, setAdsId] = useState(bu.google_ads_customer_id ?? "");
   const [waNumber, setWaNumber] = useState(bu.owner_whatsapp_number);
@@ -124,6 +132,9 @@ function EditProfileModal({
       const updated = await api.businessUnits.updateProfile(bu.id, {
         primary_url: primaryUrl || null,
         google_search_console_site: gscSite || null,
+        google_business_map_url: googleMapUrl || null,
+        google_business_rating: googleRating ? parseFloat(googleRating) : null,
+        google_business_review_count: googleReviews ? parseInt(googleReviews, 10) : null,
         social_media_links: socialLinks || null,
         google_ads_customer_id: adsId || null,
         owner_whatsapp_number: waNumber,
@@ -182,6 +193,46 @@ function EditProfileModal({
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
               Must be a verified property in your GSC account.
             </p>
+          </div>
+
+          {/* Google Business Profile / Maps URL */}
+          <div>
+            <label className="form-label">Google Business Profile (Maps URL)</label>
+            <input
+              className="form-input"
+              value={googleMapUrl}
+              onChange={(e) => setGoogleMapUrl(e.target.value)}
+              placeholder="https://maps.google.com/?cid=... or https://goo.gl/maps/..."
+            />
+          </div>
+
+          {/* Storefront Rating & Reviews */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Storefront Rating (⭐ 1.0 - 5.0)</label>
+              <input
+                type="number"
+                step="0.1"
+                min="1.0"
+                max="5.0"
+                className="form-input"
+                value={googleRating}
+                onChange={(e) => setGoogleRating(e.target.value)}
+                placeholder="4.8"
+              />
+            </div>
+            <div>
+              <label className="form-label">Review Count</label>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                className="form-input"
+                value={googleReviews}
+                onChange={(e) => setGoogleReviews(e.target.value)}
+                placeholder="128"
+              />
+            </div>
           </div>
 
           {/* Social */}
@@ -347,6 +398,7 @@ export default function BuCommandCenterPage() {
       setSocialSuccessMessage(
         count > 0 ? `Found ${count}!` : "None found"
       );
+      await fetchData();
       setTimeout(() => setSocialSuccessMessage(""), 4000);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Social discovery failed");
@@ -678,6 +730,13 @@ export default function BuCommandCenterPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
+                <BrandIntelligenceCard
+                  businessUnit={bu}
+                  onDiscoverSocials={handleDiscoverSocials}
+                  loadingDiscovery={discoveringSocials}
+                />
 
                 {/* ── Google Search Console Card (below Lead Ingestion) ────── */}
                 {bu.google_search_console_site ? (
