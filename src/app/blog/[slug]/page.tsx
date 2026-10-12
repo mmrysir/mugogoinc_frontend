@@ -67,7 +67,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
           <article className="animate-fade-in">
             {/* Header / Meta */}
             <div className="mb-8 border-b border-slate-800 pb-8">
-              <div className="flex items-center gap-3 text-xs text-slate-400 mb-4 font-mono">
+              <div className="flex items-center gap-3 text-xs text-slate-300 mb-4 font-mono">
                 <span className="text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
                   {post.status.toUpperCase()}
                 </span>
@@ -90,14 +90,14 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
               </h1>
 
               {post.excerpt && (
-                <p className="text-lg text-slate-300 leading-relaxed font-light italic bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                <p className="text-lg text-slate-200 leading-relaxed font-light italic bg-slate-900/60 p-4 rounded-xl border border-slate-800">
                   "{post.excerpt}"
                 </p>
               )}
             </div>
 
             {/* Content Body */}
-            <div className="prose prose-invert max-w-none text-slate-200 leading-relaxed text-base space-y-6">
+            <div className="prose prose-invert max-w-none text-slate-100 leading-relaxed text-base space-y-6">
               {post.content_markdown || post.content_html || post.content ? (
                 <div
                   className="whitespace-pre-wrap font-sans"
@@ -106,12 +106,12 @@ export default function BlogDetailPage({ params }: { params: Promise<{ slug: str
                   }}
                 />
               ) : (
-                <p className="text-slate-500 italic">No body content provided for this article.</p>
+                <p className="text-slate-400 italic">No body content provided for this article.</p>
               )}
             </div>
 
             {/* Footer Attribution Badge */}
-            <div className="mt-12 pt-8 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500 font-mono">
+            <div className="mt-12 pt-8 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400 font-mono">
               <span>Published via Mugogo Growth OS</span>
               <span>Slug: {post.slug}</span>
             </div>

@@ -9,6 +9,7 @@ import {
   Organization,
   Lead,
   KeywordIdea,
+  ScrapedMetadata,
   AuthUser,
 } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
@@ -279,6 +280,9 @@ export default function BuCommandCenterPage() {
   const [keywordsLoading, setKeywordsLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
   const [keywordSeeds, setKeywordSeeds] = useState("");
+  const [negativeKeywords, setNegativeKeywords] = useState("");
+  const [scrapedData, setScrapedData] = useState<ScrapedMetadata | null>(null);
+  const [scrapingLoading, setScrapingLoading] = useState(false);
   const [keywordLocation, setKeywordLocation] = useState("Kenya");
   const [keywordLanguage, setKeywordLanguage] = useState("English");
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -315,6 +319,21 @@ export default function BuCommandCenterPage() {
       setLeads(leadsData.items);
       setLeadsTotal(leadsData.total);
       setUser(userData);
+
+      // Auto-fetch scraped metadata from client website if primary_url is configured
+      if (buData.primary_url) {
+        setScrapingLoading(true);
+        api.marketing
+          .scrapePreview(buData.primary_url)
+          .then((preview) => {
+            setScrapedData(preview);
+            if (preview.success && preview.suggested_seeds && preview.suggested_seeds.length > 0) {
+              setKeywordSeeds((prev) => (prev ? prev : preview.suggested_seeds.join("\n")));
+            }
+          })
+          .catch(() => {})
+          .finally(() => setScrapingLoading(false));
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load Business Unit.");
     } finally {
@@ -348,12 +367,18 @@ export default function BuCommandCenterPage() {
         .split(/[\n,]+/)
         .map((s) => s.trim())
         .filter(Boolean);
+      const negatives = negativeKeywords
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
       const result = await api.marketing.searchKeywords(
         seeds,
         keywordLocation,
         keywordLanguage,
         bu.primary_url ?? undefined,
         buId,
+        undefined,
+        negatives,
       );
       setKeywords(result.keywords);
     } catch (err: unknown) {
@@ -680,6 +705,86 @@ export default function BuCommandCenterPage() {
                     )}
                   </div>
 
+                  {/* Scraped Website Intelligence Card */}
+                  {bu.primary_url && (
+                    <div
+                      className="p-3.5 mb-4 rounded-xl border text-xs animate-fade-in"
+                      style={{
+                        background: "var(--bg-elevated)",
+                        borderColor: "var(--border)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold flex items-center gap-1.5" style={{ color: "var(--accent-blue)" }}>
+                          <Icon name="travel_explore" size="sm" />
+                          Website Scraped Intelligence
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {scrapingLoading && (
+                            <span className="text-2xs flex items-center gap-1" style={{ color: "var(--text-muted)" }}>
+                              <span className="material-symbols-outlined text-xs animate-spin">refresh</span>
+                              Scanning…
+                            </span>
+                          )}
+                          {scrapedData?.suggested_seeds && scrapedData.suggested_seeds.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setKeywordSeeds(scrapedData.suggested_seeds.join("\n"));
+                              }}
+                              className="btn btn-ghost"
+                              style={{ padding: "0.2rem 0.55rem", fontSize: "0.72rem" }}
+                              title="Load suggested seed phrases into the text area"
+                            >
+                              ⚡ Auto-fill Seeds ({scrapedData.suggested_seeds.length})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {scrapedData?.success ? (
+                        <div className="space-y-1.5">
+                          {scrapedData.title && (
+                            <div>
+                              <span className="font-medium" style={{ color: "var(--text-muted)" }}>Title: </span>
+                              <span className="font-semibold" style={{ color: "var(--text-primary)" }}>{scrapedData.title}</span>
+                            </div>
+                          )}
+                          {scrapedData.meta_description && (
+                            <div>
+                              <span className="font-medium" style={{ color: "var(--text-muted)" }}>Description: </span>
+                              <span style={{ color: "var(--text-secondary)" }}>{scrapedData.meta_description}</span>
+                            </div>
+                          )}
+                          {scrapedData.headings && scrapedData.headings.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              <span className="font-medium self-center mr-1" style={{ color: "var(--text-muted)" }}>Headings:</span>
+                              {scrapedData.headings.slice(0, 4).map((h, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-0.5 rounded text-2xs font-mono"
+                                  style={{
+                                    background: "rgba(6,182,212,0.1)",
+                                    color: "var(--accent-cyan)",
+                                    border: "1px solid rgba(6,182,212,0.2)",
+                                  }}
+                                >
+                                  {h}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : scrapingLoading ? (
+                        <p style={{ color: "var(--text-muted)" }}>Fetching title and metadata from {bu.primary_url}…</p>
+                      ) : (
+                        <p style={{ color: "var(--text-muted)" }}>
+                          Domain metadata will be fed into the Google Ads engine during keyword analysis.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Location & Language selectors */}
                   <div className="grid grid-cols-2 gap-3 mb-4">
                     <div>
@@ -738,16 +843,41 @@ export default function BuCommandCenterPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 mb-4">
-                    <div className="flex-1">
-                      <label className="form-label">Seed Keywords (one per line)</label>
+                  {/* Seed Keywords & Negative Keywords Inputs */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="form-label flex items-center justify-between">
+                        <span>Seed Keywords (one per line)</span>
+                        <span className="text-2xs font-normal" style={{ color: "var(--text-muted)" }}>Include phrases</span>
+                      </label>
                       <textarea
+                        id="seed-keywords-input"
                         className="form-input"
-                        rows={3}
+                        rows={4}
                         value={keywordSeeds}
                         onChange={(e) => setKeywordSeeds(e.target.value)}
                         placeholder={"safari packages kenya\nnairobi day trips\nluxury lodge"}
                         style={{ resize: "vertical" }}
+                      />
+                    </div>
+                    <div>
+                      <label className="form-label flex items-center justify-between">
+                        <span className="flex items-center gap-1 font-semibold" style={{ color: "#fb7185" }}>
+                          <Icon name="block" size="sm" /> Negative Keywords (exclude)
+                        </span>
+                        <span className="text-2xs font-normal" style={{ color: "#fb7185" }}>Filtered out</span>
+                      </label>
+                      <textarea
+                        id="negative-keywords-input"
+                        className="form-input"
+                        rows={4}
+                        value={negativeKeywords}
+                        onChange={(e) => setNegativeKeywords(e.target.value)}
+                        placeholder={"free\ncheap\ndownload\ncrack\njobs"}
+                        style={{
+                          resize: "vertical",
+                          borderColor: "rgba(244,63,94,0.35)",
+                        }}
                       />
                     </div>
                   </div>

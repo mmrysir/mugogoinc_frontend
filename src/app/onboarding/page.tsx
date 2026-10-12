@@ -215,15 +215,15 @@ export default function OnboardingPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-xl font-bold text-slate-100">{orgName}</h2>
+                      <h2 className="text-xl font-bold text-white">{orgName}</h2>
                       <span className="px-2 py-0.5 rounded text-2xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                         ACTIVE TENANT
                       </span>
-                      <span className="px-2 py-0.5 rounded text-2xs font-mono text-slate-400 bg-slate-800 border border-slate-700">
+                      <span className="px-2 py-0.5 rounded text-2xs font-mono text-slate-200 bg-slate-800 border border-slate-700">
                         slug: {success.org_slug}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-300 mt-1">
                       Organization and default business unit provisioned atomically. Leads will route to {ownerWhatsapp}.
                     </p>
                   </div>
@@ -456,7 +456,7 @@ export default function OnboardingPage() {
                         required
                         className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                       />
-                      <p className="text-xs text-slate-500 mt-1">
+                      <p className="text-xs text-slate-400 mt-1">
                         We will scrape meta tags, discover social profiles, and generate live keyword demand from this URL.
                       </p>
                     </div>
@@ -498,7 +498,7 @@ export default function OnboardingPage() {
                           required
                           className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono"
                         />
-                        <p className="text-2xs text-slate-500 mt-1">Instant lead alerts are pushed here.</p>
+                        <p className="text-2xs text-slate-400 mt-1">Instant lead alerts are pushed here.</p>
                       </div>
 
                       <div>
@@ -513,7 +513,7 @@ export default function OnboardingPage() {
                           required
                           className="w-full px-3 py-2.5 text-sm rounded-lg bg-slate-900 border border-slate-700 text-slate-100 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
-                        <p className="text-2xs text-slate-500 mt-1">Lead summaries and alerts recipient.</p>
+                        <p className="text-2xs text-slate-400 mt-1">Lead summaries and alerts recipient.</p>
                       </div>
                     </div>
                   </div>
@@ -546,7 +546,7 @@ export default function OnboardingPage() {
                               placeholder="sc-domain:example.com or https://example.com"
                               className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono"
                             />
-                            <p className="text-2xs text-slate-500 mt-1">Auto-derived from website domain.</p>
+                            <p className="text-2xs text-slate-400 mt-1">Auto-derived from website domain.</p>
                           </div>
 
                           <div>
@@ -560,7 +560,7 @@ export default function OnboardingPage() {
                               placeholder="123-456-7890"
                               className="w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-slate-700 text-slate-200 font-mono"
                             />
-                            <p className="text-2xs text-slate-500 mt-1">For per-tenant keyword bids &amp; offline CAPI.</p>
+                            <p className="text-2xs text-slate-400 mt-1">For per-tenant keyword bids &amp; offline CAPI.</p>
                           </div>
                         </div>
 
@@ -633,7 +633,7 @@ export default function OnboardingPage() {
             {/* Explainer Sidebar */}
             <div className="xl:col-span-1 space-y-6">
               <div className="card">
-                <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                <h3 className="font-semibold text-xs uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
                   <Icon name="info" size="sm" /> WHAT THIS ENGINE DOES
                 </h3>
                 <div className="space-y-3">
@@ -670,7 +670,7 @@ export default function OnboardingPage() {
                       </span>
                       <div>
                         <p className="font-semibold text-slate-200">{item.title}</p>
-                        <p className="text-2xs text-slate-400 leading-relaxed mt-0.5">{item.text}</p>
+                        <p className="text-2xs text-slate-300 leading-relaxed mt-0.5">{item.text}</p>
                       </div>
                     </div>
                   ))}
@@ -679,7 +679,7 @@ export default function OnboardingPage() {
 
               <div className="card p-4 bg-slate-900/40 border border-slate-800">
                 <p className="text-xs font-semibold text-slate-300 mb-1">Need to manage existing tenants?</p>
-                <p className="text-2xs text-slate-500 mb-3">
+                <p className="text-2xs text-slate-300 mb-3">
                   View, edit, or configure agent assignments for existing clients from the Organizations dashboard.
                 </p>
                 <Link

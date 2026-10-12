@@ -239,6 +239,17 @@ export interface KeywordIdea {
   opportunity_score: number;
 }
 
+export interface ScrapedMetadata {
+  success: boolean;
+  url: string;
+  title: string;
+  meta_description: string;
+  headings: string[];
+  discovered_socials: Record<string, string>;
+  suggested_seeds: string[];
+  error?: string;
+}
+
 export interface CampaignMetric {
   campaign_name: string;
   daily_spend_usd: number;
@@ -247,11 +258,36 @@ export interface CampaignMetric {
   owner_phone: string;
 }
 
+export interface PublicBlogPost {
+  id: string;
+  business_unit_id?: string | null;
+  organization_id?: string | null;
+  title: string;
+  slug: string;
+  summary?: string | null;
+  excerpt?: string | null;
+  content?: string | null;
+  content_markdown?: string | null;
+  content_html?: string | null;
+  featured_image_url?: string | null;
+  target_keyword?: string | null;
+  author_name?: string | null;
+  published_at?: string | null;
+}
+
+export interface PublicBlogFeedResponse {
+  status: string;
+  business_unit_id: string;
+  total_posts: number;
+  posts: PublicBlogPost[];
+}
+
 export const api = {
   blog: {
-    listPublic: (page = 1, limit = 10, orgId?: string) => {
+    listPublic: (page = 1, limit = 10, orgId?: string, buId?: string) => {
       const q = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (orgId) q.set("org_id", orgId);
+      if (buId) q.set("business_unit_id", buId);
       return request<BlogPostPaginated>(`/blog/posts?${q.toString()}`);
     },
     getPublicBySlug: (slug: string, orgId?: string) => {
@@ -273,6 +309,17 @@ export const api = {
       }),
   },
 
+  publicBlogs: {
+    getFeed: (businessUnitId: string, limit = 10, offset = 0) =>
+      request<PublicBlogFeedResponse>(
+        `/public/blogs?business_unit_id=${encodeURIComponent(businessUnitId)}&limit=${limit}&offset=${offset}`
+      ),
+    getBySlug: (slug: string, businessUnitId: string) =>
+      request<PublicBlogPost>(
+        `/public/blogs/${encodeURIComponent(slug)}?business_unit_id=${encodeURIComponent(businessUnitId)}`
+      ),
+  },
+
   marketing: {
     searchKeywords: (
       seedKeywords: string[],
@@ -281,17 +328,24 @@ export const api = {
       pageUrl?: string,
       businessUnitId?: string,
       locationId?: string,  // raw numeric fallback (legacy)
+      negativeKeywords?: string[],
     ) =>
       request<{ keywords: KeywordIdea[]; count: number }>("/marketing/keywords/search", {
         method: "POST",
         body: JSON.stringify({
           seed_keywords: seedKeywords,
+          negative_keywords: negativeKeywords ?? [],
           location_name: locationName,
           language_name: languageName,
           location_id: locationId ?? undefined,
           page_url: pageUrl,
           business_unit_id: businessUnitId,
         }),
+      }),
+    scrapePreview: (url: string) =>
+      request<ScrapedMetadata>("/marketing/scrape-preview", {
+        method: "POST",
+        body: JSON.stringify({ url }),
       }),
     getKeywordLocations: () =>
       request<{ locations: { name: string; id: string }[]; languages: { name: string; id: string }[] }>(
