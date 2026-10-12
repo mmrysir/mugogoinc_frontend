@@ -15,6 +15,8 @@ import {
 import Sidebar from "@/components/Sidebar";
 import { RouteTypeBadge, StatusBadge, ChannelBadge } from "@/components/Badges";
 import Icon from "@/components/Icon";
+import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
+import { REGION_PRESETS, AVAILABLE_LOCATIONS, AVAILABLE_LANGUAGES } from "@/constants/regions";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -358,42 +360,6 @@ export default function BuCommandCenterPage() {
     setTimeout(() => setWebhookCopied(false), 2000);
   };
 
-  const AVAILABLE_LOCATIONS = [
-    "Kenya", "Nigeria", "South Africa", "Uganda", "Tanzania",
-    "Ethiopia", "Ghana", "United States", "United Kingdom",
-    "Canada", "Australia", "India", "Germany", "France", "UAE", "Global",
-  ];
-
-  const AVAILABLE_LANGUAGES = [
-    "English", "Swahili", "French", "Spanish", "German", "Arabic", "Hindi", "Portuguese",
-  ];
-
-  const REGION_PRESETS: Record<string, { locations: string[]; languages: string[] }> = {
-    "🌍 East Africa": { locations: ["Kenya", "Uganda", "Tanzania"], languages: ["English", "Swahili"] },
-    "🌎 N. America":  { locations: ["United States", "Canada"],       languages: ["English"] },
-    "🌐 Global":      { locations: ["Kenya", "United States", "United Kingdom"], languages: ["English"] },
-    "🌍 W. Africa":   { locations: ["Nigeria", "Ghana"],              languages: ["English"] },
-  };
-
-  const toggleLocation = (loc: string) => {
-    setKeywordLocations((prev) =>
-      prev.includes(loc) ? (prev.length > 1 ? prev.filter((l) => l !== loc) : prev) : [...prev, loc]
-    );
-  };
-
-  const toggleLanguage = (lang: string) => {
-    setKeywordLanguages((prev) =>
-      prev.includes(lang) ? (prev.length > 1 ? prev.filter((l) => l !== lang) : prev) : [...prev, lang]
-    );
-  };
-
-  const applyPreset = (key: string) => {
-    const preset = REGION_PRESETS[key];
-    if (preset) {
-      setKeywordLocations(preset.locations);
-      setKeywordLanguages(preset.languages);
-    }
-  };
 
   const runKeywords = async () => {
     if (!bu) return;
@@ -625,6 +591,73 @@ export default function BuCommandCenterPage() {
                     </button>
                   </div>
                 </div>
+
+                {/* ── Google Search Console Card (below Lead Ingestion) ────── */}
+                {bu.google_search_console_site ? (
+                  <div
+                    className="card animate-fade-in"
+                    style={{ borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="material-symbols-outlined text-base" style={{ color: "#fbbf24" }}>
+                        travel_explore
+                      </span>
+                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                        Google Search Console
+                      </h2>
+                      <span
+                        style={{
+                          background: "rgba(245,158,11,0.15)",
+                          color: "#fbbf24",
+                          borderRadius: "9999px",
+                          padding: "0.1rem 0.55rem",
+                          fontSize: "0.7rem",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Coming Soon
+                      </span>
+                    </div>
+                    <div
+                      className="p-3 rounded-xl font-mono text-xs"
+                      style={{ background: "var(--bg-elevated)", color: "var(--text-muted)" }}
+                    >
+                      {bu.google_search_console_site}
+                    </div>
+                    <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
+                      GSC OAuth connection is being built. Once connected, Clicks, Impressions,
+                      CTR, and Average Position will appear here, grouped by query and page.
+                    </p>
+                  </div>
+                ) : (
+                  <div
+                    className="card animate-fade-in"
+                    style={{ borderColor: "rgba(107,114,128,0.2)", background: "rgba(107,114,128,0.03)" }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="material-symbols-outlined text-base" style={{ color: "var(--text-muted)" }}>
+                        travel_explore
+                      </span>
+                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+                        Google Search Console
+                      </h2>
+                    </div>
+                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                      No GSC property configured. Edit the Business Profile to add a verified Search Console property.
+                    </p>
+                    {canEdit && (
+                      <button
+                        className="btn btn-ghost mt-3"
+                        style={{ fontSize: "0.8rem" }}
+                        onClick={() => setShowEditModal(true)}
+                      >
+                        <Icon name="edit" size="sm" />
+                        Add GSC Property
+                      </button>
+                    )}
+                  </div>
+                )}
+
               </div>
 
               {/* ── RIGHT COLUMNS: Leads + Keywords ─────────────────────────── */}
@@ -822,89 +855,32 @@ export default function BuCommandCenterPage() {
                     </div>
                   )}
 
-                  {/* Multi-Region & Multi-Language Badge Pickers */}
-                  <div className="mb-4">
-                    {/* Preset Row */}
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
-                      <span className="text-2xs font-medium" style={{ color: "var(--text-muted)" }}>Quick Presets:</span>
-                      {Object.keys(REGION_PRESETS).map((label) => (
-                        <button
-                          key={label}
-                          onClick={() => applyPreset(label)}
-                          className="text-2xs px-2 py-0.5 rounded border transition-colors"
-                          style={{
-                            borderColor: "var(--border)",
-                            color: "var(--text-secondary)",
-                            background: "var(--bg-elevated)",
-                            cursor: "pointer",
-                          }}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Location Picker */}
-                    <div className="mb-3">
-                      <label className="form-label mb-1.5">
-                        Target Locations
-                        <span className="ml-1.5 text-2xs font-normal" style={{ color: "var(--text-muted)" }}>
-                          ({keywordLocations.length} selected)
-                        </span>
-                      </label>
-                      <div className="flex flex-wrap gap-1.5" id="keyword-location-picker">
-                        {AVAILABLE_LOCATIONS.map((loc) => {
-                          const active = keywordLocations.includes(loc);
-                          return (
-                            <button
-                              key={loc}
-                              onClick={() => toggleLocation(loc)}
-                              className="text-xs px-2.5 py-1 rounded-full border transition-all"
-                              style={{
-                                borderColor: active ? "#06b6d4" : "var(--border)",
-                                background: active ? "rgba(6,182,212,0.15)" : "var(--bg-elevated)",
-                                color: active ? "#22d3ee" : "var(--text-muted)",
-                                cursor: "pointer",
-                                fontWeight: active ? 600 : 400,
-                              }}
-                            >
-                              {active ? "✓ " : ""}{loc}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Language Picker */}
-                    <div>
-                      <label className="form-label mb-1.5">
-                        Languages
-                        <span className="ml-1.5 text-2xs font-normal" style={{ color: "var(--text-muted)" }}>
-                          ({keywordLanguages.length} selected)
-                        </span>
-                      </label>
-                      <div className="flex flex-wrap gap-1.5" id="keyword-language-picker">
-                        {AVAILABLE_LANGUAGES.map((lang) => {
-                          const active = keywordLanguages.includes(lang);
-                          return (
-                            <button
-                              key={lang}
-                              onClick={() => toggleLanguage(lang)}
-                              className="text-xs px-2.5 py-1 rounded-full border transition-all"
-                              style={{
-                                borderColor: active ? "#a855f7" : "var(--border)",
-                                background: active ? "rgba(168,85,247,0.12)" : "var(--bg-elevated)",
-                                color: active ? "#c084fc" : "var(--text-muted)",
-                                cursor: "pointer",
-                                fontWeight: active ? 600 : 400,
-                              }}
-                            >
-                              {active ? "✓ " : ""}{lang}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                  {/* Multi-Region & Multi-Language Searchable Pickers */}
+                  <div className="mb-4 space-y-4">
+                    <SearchableMultiSelect
+                      id="keyword-location-picker"
+                      label="Target Locations"
+                      options={AVAILABLE_LOCATIONS}
+                      selected={keywordLocations}
+                      onChange={setKeywordLocations}
+                      presets={REGION_PRESETS}
+                      presetField="countries"
+                      accentColor="#22d3ee"
+                      accentBg="rgba(6,182,212,0.15)"
+                      placeholder="Search country…"
+                    />
+                    <SearchableMultiSelect
+                      id="keyword-language-picker"
+                      label="Languages"
+                      options={AVAILABLE_LANGUAGES}
+                      selected={keywordLanguages}
+                      onChange={setKeywordLanguages}
+                      presets={REGION_PRESETS}
+                      presetField="languages"
+                      accentColor="#c084fc"
+                      accentBg="rgba(168,85,247,0.12)"
+                      placeholder="Search language…"
+                    />
                   </div>
 
                   {/* Seed Keywords & Negative Keywords Inputs */}
@@ -1033,73 +1009,6 @@ export default function BuCommandCenterPage() {
                     </div>
                   )}
                 </div>
-
-                {/* GSC Placeholder — ready for when gsc_service.py is built */}
-                {bu.google_search_console_site ? (
-                  <div
-                    className="card animate-fade-in"
-                    style={{ borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="material-symbols-outlined text-base" style={{ color: "#fbbf24" }}>
-                        travel_explore
-                      </span>
-                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                        Google Search Console
-                      </h2>
-                      <span
-                        style={{
-                          background: "rgba(245,158,11,0.15)",
-                          color: "#fbbf24",
-                          borderRadius: "9999px",
-                          padding: "0.1rem 0.55rem",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Coming Soon
-                      </span>
-                    </div>
-                    <div
-                      className="p-3 rounded-xl font-mono text-xs"
-                      style={{ background: "var(--bg-elevated)", color: "var(--text-muted)" }}
-                    >
-                      {bu.google_search_console_site}
-                    </div>
-                    <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
-                      GSC OAuth connection is being built. Once connected, Clicks, Impressions, CTR, and Average Position
-                      will appear here, grouped by query and page.
-                    </p>
-                  </div>
-                ) : (
-                  <div
-                    className="card animate-fade-in"
-                    style={{ borderColor: "rgba(107,114,128,0.2)", background: "rgba(107,114,128,0.03)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="material-symbols-outlined text-base" style={{ color: "var(--text-muted)" }}>
-                        travel_explore
-                      </span>
-                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                        Google Search Console
-                      </h2>
-                    </div>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      No GSC property configured. Edit the Business Profile to add a verified Search Console property.
-                    </p>
-                    {canEdit && (
-                      <button
-                        className="btn btn-ghost mt-3"
-                        style={{ fontSize: "0.8rem" }}
-                        onClick={() => setShowEditModal(true)}
-                      >
-                        <Icon name="edit" size="sm" />
-                        Add GSC Property
-                      </button>
-                    )}
-                  </div>
-                )}
-
               </div>
             </div>
           </>
