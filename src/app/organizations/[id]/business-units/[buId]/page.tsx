@@ -610,7 +610,7 @@ export default function BuCommandCenterPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* ── LEFT COLUMN: Profile + Ingestion ────────────────────────── */}
-              <div className="space-y-6">
+              <div className="space-y-6 min-w-0">
 
                 {/* Business Profile Card */}
                 <div className="card animate-fade-in">
@@ -847,7 +847,7 @@ export default function BuCommandCenterPage() {
               </div>
 
               {/* ── RIGHT COLUMNS: Leads + Keywords ─────────────────────────── */}
-              <div className="lg:col-span-2 space-y-6">
+              <div className="lg:col-span-2 space-y-6 min-w-0">
 
                 {/* Recent Leads Feed */}
                 <div className="card animate-slide-up" style={{ padding: 0, overflow: "hidden" }}>

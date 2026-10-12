@@ -73,13 +73,68 @@ export default function BrandIntelligenceCard({
   const schemaType =
     footprint.schema_org?.type || footprint.schema_type || "LocalBusiness";
 
-  const socialCount = Object.keys(socials).filter(
-    (k) => k !== "google_business" && Boolean(socials[k])
+  const getPlatformStatus = (platform: string): string => {
+    const meta = footprint[platform];
+    if (meta && typeof meta === "object" && "status" in meta && typeof meta.status === "string") {
+      return meta.status.toUpperCase();
+    }
+    return "ACTIVE";
+  };
+
+  const getStatusColor = (status: string): { background: string; color: string; borderColor: string } => {
+    switch (status.toLowerCase()) {
+      case "verified":
+        return {
+          background: "rgba(34, 197, 94, 0.12)",
+          color: "#4ade80",
+          borderColor: "rgba(34, 197, 94, 0.3)",
+        };
+      case "pending":
+        return {
+          background: "rgba(245, 158, 11, 0.1)",
+          color: "#fbbf24",
+          borderColor: "rgba(245, 158, 11, 0.25)",
+        };
+      case "inactive":
+        return {
+          background: "rgba(107, 114, 128, 0.08)",
+          color: "var(--text-muted)",
+          borderColor: "var(--border)",
+        };
+      case "active":
+      default:
+        return {
+          background: "rgba(6, 182, 212, 0.12)",
+          color: "#22d3ee",
+          borderColor: "rgba(6, 182, 212, 0.28)",
+        };
+    }
+  };
+
+  const resolvedSocials = { ...Object.fromEntries(
+      Object.entries(footprint).filter(([platform, meta]) => {
+        if (platform === "google_business") return false;
+        return Boolean(meta && typeof meta === "object" && (meta as Record<string, unknown>).url);
+      }).map(([platform, meta]) => [platform, String((meta as Record<string, unknown>).url)])
+    ),
+    ...socials,
+  } as Record<string, string | undefined>;
+
+  const socialCount = Object.keys(resolvedSocials).filter(
+    (k) => k !== "google_business" && Boolean(resolvedSocials[k])
   ).length;
+
+  const activeFootprintCount = Object.entries(footprint).filter(([platform, meta]) => {
+    if (platform === "google_business") return false;
+    if (!meta || typeof meta !== "object") return false;
+    return (meta as Record<string, unknown>).status !== "inactive";
+  }).length;
+
+  const visibleSocialCount = Math.max(socialCount, activeFootprintCount);
 
   return (
     <div
-      className="card animate-fade-in"
+      className="card animate-fade-in overflow-hidden"
       style={{
         borderColor: "rgba(6,182,212,0.25)",
         background: "var(--bg-card)",
@@ -87,33 +142,33 @@ export default function BrandIntelligenceCard({
     >
       {/* ── Header ───────────────────────────────────────────────────────── */}
       <div
-        className="flex items-start justify-between pb-4 border-b gap-3 flex-wrap"
+        className="flex items-start justify-between pb-4 border-b gap-3 flex-wrap min-w-0"
         style={{ borderColor: "var(--border)" }}
       >
-        <div>
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-base" style={{ color: "#06b6d4" }}>
+            <span className="material-symbols-outlined text-base shrink-0" style={{ color: "#06b6d4" }}>
               verified
             </span>
             <h2
-              className="text-sm font-bold uppercase tracking-wider"
+              className="text-sm font-bold uppercase tracking-wider truncate"
               style={{ color: "var(--text-secondary)" }}
             >
               Brand Intelligence &amp; Footprint
             </h2>
           </div>
-          <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+          <p className="text-xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>
             Local storefront health, live Google Places telemetry, and verified authority signals.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
           {hasPlaceId && onSyncGbp && (
             <button
               type="button"
               onClick={onSyncGbp}
               disabled={loadingSyncGbp}
-              className="text-xs px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all"
+              className="text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all whitespace-nowrap"
               style={{
                 borderColor: "rgba(245,158,11,0.4)",
                 background: "rgba(245,158,11,0.1)",
@@ -136,7 +191,7 @@ export default function BrandIntelligenceCard({
             type="button"
             onClick={onDiscoverSocials}
             disabled={loadingDiscovery}
-            className="text-xs px-3 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all"
+            className="text-xs px-2.5 py-1.5 rounded-lg border flex items-center gap-1.5 transition-all whitespace-nowrap"
             style={{
               borderColor: "rgba(6,182,212,0.4)",
               background: "rgba(6,182,212,0.1)",
@@ -157,17 +212,17 @@ export default function BrandIntelligenceCard({
       </div>
 
       {/* ── Metrics Grid ─────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-4">
+      <div className="grid grid-cols-1 gap-3.5 pt-4 min-w-0">
         {/* 1. Google Business Profile & Local Storefront */}
         <div
-          className="p-3.5 rounded-xl border flex flex-col justify-between"
+          className="p-3.5 rounded-xl border flex flex-col justify-between min-w-0"
           style={{
             background: "var(--bg-elevated)",
             borderColor: "var(--border)",
           }}
         >
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
               <span
                 className="text-2xs font-semibold uppercase tracking-wider"
                 style={{ color: "var(--text-muted)" }}
@@ -182,7 +237,7 @@ export default function BrandIntelligenceCard({
             {/* State A: Live Synced Rating */}
             {isSynced ? (
               <div className="mt-1">
-                <div className="flex items-baseline gap-2">
+                <div className="flex items-baseline gap-2 flex-wrap">
                   <span
                     className="text-2xl font-bold font-mono"
                     style={{ color: "var(--text-primary)" }}
@@ -201,38 +256,38 @@ export default function BrandIntelligenceCard({
             ) : hasPlaceId ? (
               /* State B: Linked via Place ID, Awaiting initial Sync */
               <div
-                className="mt-2 p-2.5 rounded-lg border"
+                className="mt-2 p-2.5 rounded-lg border min-w-0"
                 style={{
                   background: "rgba(245,158,11,0.06)",
                   borderColor: "rgba(245,158,11,0.25)",
                 }}
               >
                 <div className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#fbbf24" }}>
-                  <span className="material-symbols-outlined text-sm">schedule</span>
-                  Awaiting Initial Sync
+                  <span className="material-symbols-outlined text-sm shrink-0">schedule</span>
+                  <span className="truncate">Awaiting Initial Sync</span>
                 </div>
-                <p className="text-2xs mt-1" style={{ color: "var(--text-muted)" }}>
+                <p className="text-2xs mt-1 leading-relaxed" style={{ color: "var(--text-muted)" }}>
                   Place ID linked. Click <strong>Sync GBP</strong> above to pull live ratings and review counts.
                 </p>
               </div>
             ) : (
               /* State C: No Place ID Linked */
               <div
-                className="mt-2 p-2.5 rounded-lg border"
+                className="mt-2 p-2.5 rounded-lg border min-w-0"
                 style={{
                   background: "rgba(107,114,128,0.06)",
                   borderColor: "var(--border)",
                 }}
               >
                 <div className="flex items-center gap-1.5 text-xs" style={{ color: "var(--text-muted)" }}>
-                  <span className="material-symbols-outlined text-sm">link_off</span>
-                  No storefront linked yet
+                  <span className="material-symbols-outlined text-sm shrink-0">link_off</span>
+                  <span>No storefront linked yet</span>
                 </div>
                 {onEditProfile && (
                   <button
                     type="button"
                     onClick={onEditProfile}
-                    className="mt-2 text-2xs px-2.5 py-1 rounded font-semibold transition hover:opacity-85"
+                    className="mt-2 text-2xs px-2.5 py-1 rounded font-semibold transition hover:opacity-85 whitespace-nowrap"
                     style={{
                       background: "rgba(6,182,212,0.15)",
                       color: "#22d3ee",
@@ -246,21 +301,21 @@ export default function BrandIntelligenceCard({
             )}
           </div>
 
-          <div className="mt-3 pt-2 border-t flex items-center justify-between" style={{ borderColor: "var(--border)" }}>
+          <div className="mt-3 pt-2 border-t flex items-center justify-between flex-wrap gap-2 min-w-0" style={{ borderColor: "var(--border)" }}>
             {mapUrl ? (
               <a
                 href={mapUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 text-2xs font-medium hover:underline"
+                className="inline-flex items-center gap-1 text-2xs font-medium hover:underline min-w-0 truncate"
                 style={{ color: "#22d3ee" }}
               >
-                <span className="material-symbols-outlined text-xs">location_on</span>
-                View on Google Maps
-                <span className="material-symbols-outlined text-2xs">open_in_new</span>
+                <span className="material-symbols-outlined text-xs shrink-0">location_on</span>
+                <span className="truncate">View on Google Maps</span>
+                <span className="material-symbols-outlined text-2xs shrink-0">open_in_new</span>
               </a>
             ) : (
-              <span className="text-2xs italic" style={{ color: "var(--text-muted)" }}>
+              <span className="text-2xs italic truncate min-w-0" style={{ color: "var(--text-muted)" }}>
                 {hasPlaceId ? `Place ID: ${businessUnit.google_business_place_id?.slice(0, 14)}…` : "No Maps URL configured"}
               </span>
             )}
@@ -270,7 +325,7 @@ export default function BrandIntelligenceCard({
                 type="button"
                 onClick={onSyncGbp}
                 disabled={loadingSyncGbp}
-                className="text-2xs hover:underline flex items-center gap-0.5"
+                className="text-2xs hover:underline flex items-center gap-0.5 shrink-0"
                 style={{ color: "var(--text-muted)" }}
                 title="Refresh live reviews from Google Places API"
               >
@@ -283,79 +338,91 @@ export default function BrandIntelligenceCard({
 
         {/* 2. Connected Digital Properties & Schema Metrics */}
         <div
-          className="p-3.5 rounded-xl border md:col-span-2 flex flex-col justify-between"
+          className="p-3.5 rounded-xl border flex flex-col justify-between min-w-0"
           style={{
             background: "var(--bg-elevated)",
             borderColor: "var(--border)",
           }}
         >
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2 min-w-0">
+              <div className="flex items-center gap-2 min-w-0">
                 <span
-                  className="text-2xs font-semibold uppercase tracking-wider"
+                  className="text-2xs font-semibold uppercase tracking-wider truncate"
                   style={{ color: "var(--text-muted)" }}
                 >
                   Connected Digital Properties
                 </span>
-                {socialCount > 0 && (
+                {visibleSocialCount > 0 && (
                   <span
-                    className="text-2xs px-1.5 py-0.5 rounded-full font-bold"
+                    className="text-2xs px-1.5 py-0.5 rounded-full font-bold shrink-0"
                     style={{
                       background: "rgba(16,185,129,0.15)",
                       color: "#34d399",
                     }}
                   >
-                    {socialCount} Active
+                    {visibleSocialCount} Active
                   </span>
                 )}
               </div>
 
               {/* Schema badge */}
-              <div className="flex items-center gap-1.5 text-2xs">
-                <span className="material-symbols-outlined text-xs" style={{ color: "#06b6d4" }}>
+              <div className="flex items-center gap-1.5 text-2xs shrink-0">
+                <span className="material-symbols-outlined text-xs shrink-0" style={{ color: "#06b6d4" }}>
                   schema
                 </span>
-                <span style={{ color: "var(--text-muted)" }}>Schema.org:</span>
-                <span className="font-mono font-medium" style={{ color: "var(--text-primary)" }}>
+                <span style={{ color: "var(--text-muted)" }}>Schema:</span>
+                <span className="font-mono font-medium truncate max-w-[130px]" style={{ color: "var(--text-primary)" }}>
                   {schemaType}
                 </span>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {Object.keys(socials).length === 0 ? (
+            <div className="flex flex-wrap gap-1.5 mt-2 min-w-0">
+              {Object.keys(resolvedSocials).filter((platform) => platform !== "google_business" && Boolean(resolvedSocials[platform])).length === 0 ? (
                 <div
-                  className="p-3 rounded-lg border w-full text-center"
+                  className="p-3 rounded-lg border w-full text-center min-w-0"
                   style={{
                     background: "rgba(107,114,128,0.04)",
                     borderColor: "var(--border)",
                   }}
                 >
-                  <p className="text-xs italic" style={{ color: "var(--text-muted)" }}>
+                  <p className="text-xs italic leading-relaxed" style={{ color: "var(--text-muted)" }}>
                     No social profiles discovered yet. Click &ldquo;Auto-Discover&rdquo; above to scan DOM &amp; Schema.org metadata.
                   </p>
                 </div>
               ) : (
-                Object.entries(socials).map(([platform, url]) => {
+                Object.entries(resolvedSocials).map(([platform, url]) => {
                   if (!url || platform === "google_business") return null;
+                  const status = getPlatformStatus(platform);
+                  const statusStyles = getStatusColor(status);
                   return (
                     <a
                       key={platform}
                       href={url}
                       target="_blank"
                       rel="noreferrer"
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all hover:opacity-85"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border transition-all hover:opacity-85 max-w-full"
                       style={{
                         background: "var(--bg-card)",
                         borderColor: "var(--border)",
                         color: "var(--text-primary)",
                       }}
                     >
-                      <span className="capitalize font-semibold" style={{ color: "#22d3ee" }}>
+                      <span className="capitalize font-semibold truncate" style={{ color: "#22d3ee" }}>
                         {platform}
                       </span>
-                      <span className="material-symbols-outlined text-2xs opacity-60">open_in_new</span>
+                      <span
+                        className="text-2xs font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full border"
+                        style={{
+                          background: statusStyles.background,
+                          color: statusStyles.color,
+                          borderColor: statusStyles.borderColor,
+                        }}
+                      >
+                        {status}
+                      </span>
+                      <span className="material-symbols-outlined text-2xs opacity-60 shrink-0">open_in_new</span>
                     </a>
                   );
                 })
@@ -364,19 +431,21 @@ export default function BrandIntelligenceCard({
           </div>
 
           <div
-            className="flex items-center justify-between text-2xs mt-3 pt-2 border-t flex-wrap gap-2"
+            className="flex items-center justify-between text-2xs mt-3 pt-2 border-t flex-wrap gap-2 min-w-0"
             style={{ borderColor: "var(--border)", color: "var(--text-muted)" }}
           >
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 min-w-0 flex-1">
               <span
-                className="inline-block w-1.5 h-1.5 rounded-full"
+                className="inline-block w-1.5 h-1.5 rounded-full shrink-0"
                 style={{ background: "#34d399" }}
               />
-              Auto-extracted via Schema.org JSON-LD &amp; Footer DOM Parser
+              <span className="leading-tight">
+                Auto-extracted via Schema.org JSON-LD &amp; DOM Parser
+              </span>
             </div>
 
             {footprint.google_business?.status && (
-              <span className="font-mono text-2xs" style={{ color: "#34d399" }}>
+              <span className="font-mono text-2xs shrink-0" style={{ color: "#34d399" }}>
                 GBP: {footprint.google_business.status.toUpperCase()}
               </span>
             )}
