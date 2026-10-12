@@ -26,13 +26,24 @@ function ProfileRow({
   value,
   mono = false,
   empty = "Not set",
+  action,
 }: {
   icon: string;
   label: string;
   value?: string | null;
   mono?: boolean;
   empty?: string;
+  action?: React.ReactNode;
 }) {
+  let parsedJson: Record<string, string> | null = null;
+  if (value && value.trim().startsWith("{")) {
+    try {
+      parsedJson = JSON.parse(value);
+    } catch {
+      parsedJson = null;
+    }
+  }
+
   return (
     <div className="flex items-start gap-3 py-2.5 border-b" style={{ borderColor: "var(--border)" }}>
       <span
@@ -42,10 +53,33 @@ function ProfileRow({
         {icon}
       </span>
       <div className="min-w-0 flex-1">
-        <div className="text-xs font-semibold uppercase tracking-wider mb-0.5" style={{ color: "var(--text-muted)" }}>
-          {label}
+        <div className="flex items-center justify-between mb-0.5">
+          <div className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+            {label}
+          </div>
+          {action}
         </div>
-        {value ? (
+        {parsedJson && Object.keys(parsedJson).length > 0 ? (
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {Object.entries(parsedJson).map(([platform, url]) => (
+              <a
+                key={platform}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border transition-colors hover:opacity-80"
+                style={{
+                  background: "var(--bg-elevated)",
+                  borderColor: "var(--border)",
+                  color: "var(--text-primary)",
+                }}
+              >
+                <span className="capitalize">{platform}</span>
+                <span className="material-symbols-outlined text-xs">open_in_new</span>
+              </a>
+            ))}
+          </div>
+        ) : value ? (
           <div
             className={`text-sm break-all ${mono ? "font-mono" : ""}`}
             style={{ color: "var(--text-primary)" }}
@@ -293,6 +327,33 @@ export default function BuCommandCenterPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [webhookCopied, setWebhookCopied] = useState(false);
+  const [discoveringSocials, setDiscoveringSocials] = useState(false);
+  const [socialSuccessMessage, setSocialSuccessMessage] = useState("");
+
+  const handleDiscoverSocials = async () => {
+    if (!bu) return;
+    if (!bu.primary_url && !bu.google_search_console_site) {
+      alert("Please configure a Primary Website or Google Search Console property first.");
+      return;
+    }
+    setDiscoveringSocials(true);
+    setSocialSuccessMessage("");
+    try {
+      const res = await api.businessUnits.discoverSocials(buId);
+      const count = Object.keys(res.social_media_links || {}).length;
+      if (res.raw_social_links_str) {
+        setBu((prev) => (prev ? { ...prev, social_media_links: res.raw_social_links_str } : prev));
+      }
+      setSocialSuccessMessage(
+        count > 0 ? `Found ${count}!` : "None found"
+      );
+      setTimeout(() => setSocialSuccessMessage(""), 4000);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Social discovery failed");
+    } finally {
+      setDiscoveringSocials(false);
+    }
+  };
 
   const canEdit = user?.role === "SUPER_ADMIN" || user?.role === "MANAGER";
 
@@ -493,6 +554,32 @@ export default function BuCommandCenterPage() {
                     label="Social Media Links"
                     value={bu.social_media_links}
                     empty="Not configured"
+                    action={
+                      canEdit && (
+                        <button
+                          type="button"
+                          onClick={handleDiscoverSocials}
+                          disabled={discoveringSocials}
+                          className="text-2xs px-2 py-0.5 rounded border flex items-center gap-1 transition-all"
+                          style={{
+                            borderColor: "var(--border)",
+                            background: "var(--bg-elevated)",
+                            color: discoveringSocials ? "var(--text-muted)" : "var(--accent-blue)",
+                            cursor: discoveringSocials ? "wait" : "pointer",
+                          }}
+                          title="Auto-discover official social profiles from verified website / GSC"
+                        >
+                          <span
+                            className={`material-symbols-outlined text-xs ${
+                              discoveringSocials ? "animate-spin" : ""
+                            }`}
+                          >
+                            {discoveringSocials ? "refresh" : "bolt"}
+                          </span>
+                          {discoveringSocials ? "Discovering…" : socialSuccessMessage || "Auto-Discover"}
+                        </button>
+                      )
+                    }
                   />
                   <ProfileRow icon="smartphone" label="Owner WhatsApp" value={bu.owner_whatsapp_number} mono />
                   <ProfileRow icon="email" label="Owner Email" value={bu.owner_email} />

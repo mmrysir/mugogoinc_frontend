@@ -458,6 +458,15 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(body),
       }),
+    discoverSocials: (id: string) =>
+      request<{
+        status: string;
+        business_unit_id: string;
+        social_media_links: Record<string, string>;
+        raw_social_links_str?: string | null;
+      }>(`/business-units/${id}/discover-socials`, {
+        method: "POST",
+      }),
     delete: (id: string) =>
       request<void>(`/business-units/${id}`, { method: "DELETE" }),
   },
