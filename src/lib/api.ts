@@ -109,6 +109,32 @@ export interface Organization {
   created_at: string;
 }
 
+// ── GSC Types ─────────────────────────────────────────────────────────────────
+
+export interface GscQueryRow {
+  query: string;
+  page: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;       // expressed as a percentage (0–100)
+  position: number;
+}
+
+export interface GscSummary {
+  total_clicks: number;
+  total_impressions: number;
+  avg_ctr_pct: number;
+  avg_position: number;
+  rows_returned: number;
+  date_range: { start: string; end: string };
+}
+
+export interface GscMetrics {
+  summary: GscSummary;
+  top_queries: GscQueryRow[];
+  raw_rows?: GscQueryRow[];
+}
+
 export interface BusinessUnit {
   id: string;
   organization_id: string;
@@ -128,6 +154,10 @@ export interface BusinessUnit {
   digital_footprint_metrics?: Record<string, any> | string | null;
   target_country?: string | null;
   target_language?: string | null;
+  // GSC OAuth & Telemetry
+  gsc_site_url?: string | null;
+  gsc_connected?: boolean;
+  gsc_metrics?: GscMetrics | null;
   created_at: string;
 }
 
@@ -565,5 +595,34 @@ export const api = {
         body: JSON.stringify(body),
       }),
     me: () => request<AuthUser>("/auth/me"),
+  },
+  gsc: {
+    /** Navigates the browser to the Google OAuth consent page for a BU.
+     *  This is a redirect flow — it does NOT use the request() helper. */
+    initiateAuth: (buId: string) => {
+      const baseUrl = getApiBaseUrl();
+      window.location.href = `${baseUrl}/business-units/${buId}/gsc/auth`;
+    },
+    /** Trigger a fresh Search Analytics sync and return updated metrics. */
+    sync: (buId: string) =>
+      request<{
+        status: string;
+        business_unit_id: string;
+        metrics: GscMetrics;
+      }>(`/business-units/${buId}/gsc/sync`, { method: "POST" }),
+    /** Get current connection state and cached metrics without triggering a sync. */
+    status: (buId: string) =>
+      request<{
+        business_unit_id: string;
+        gsc_connected: boolean;
+        gsc_site_url: string | null;
+        metrics: GscMetrics | Record<string, never>;
+      }>(`/business-units/${buId}/gsc/status`),
+    /** Disconnect GSC and clear tokens / cached metrics. */
+    disconnect: (buId: string) =>
+      request<{ status: string; business_unit_id: string; message: string }>(
+        `/business-units/${buId}/gsc/disconnect`,
+        { method: "DELETE" }
+      ),
   },
 };

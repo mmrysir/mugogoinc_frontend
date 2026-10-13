@@ -18,6 +18,7 @@ import Icon from "@/components/Icon";
 import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
 import { REGION_PRESETS, AVAILABLE_LOCATIONS, AVAILABLE_LANGUAGES } from "@/constants/regions";
 import BrandIntelligenceCard from "@/components/BrandIntelligenceCard";
+import GscMetricsCard from "@/components/GscMetricsCard";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -397,6 +398,7 @@ export default function BuCommandCenterPage() {
   const [discoveringSocials, setDiscoveringSocials] = useState(false);
   const [socialSuccessMessage, setSocialSuccessMessage] = useState("");
   const [syncingGbp, setSyncingGbp] = useState(false);
+  const [syncingGsc, setSyncingGsc] = useState(false);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -441,6 +443,39 @@ export default function BuCommandCenterPage() {
       alert(err instanceof Error ? err.message : "Google Places synchronization failed");
     } finally {
       setSyncingGbp(false);
+    }
+  };
+
+  const handleConnectGsc = () => {
+    if (!bu) return;
+    // Redirect to the OAuth initiation endpoint (server handles the Google redirect)
+    api.gsc.initiateAuth(buId);
+  };
+
+  const handleSyncGsc = async () => {
+    if (!bu) return;
+    setSyncingGsc(true);
+    try {
+      const res = await api.gsc.sync(buId);
+      if (res.status === "success" && res.metrics) {
+        setBu((prev) => (prev ? { ...prev, gsc_metrics: res.metrics } : prev));
+      }
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "GSC sync failed");
+    } finally {
+      setSyncingGsc(false);
+    }
+  };
+
+  const handleDisconnectGsc = async () => {
+    if (!bu) return;
+    if (!confirm("Disconnect Google Search Console? This will clear all stored tokens and cached metrics.")) return;
+    try {
+      await api.gsc.disconnect(buId);
+      setBu((prev) => prev ? { ...prev, gsc_connected: false, gsc_metrics: null, gsc_refresh_token: undefined } : prev);
+      await fetchData();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to disconnect GSC");
     }
   };
 
@@ -778,71 +813,18 @@ export default function BuCommandCenterPage() {
                   onEditProfile={() => setShowEditModal(true)}
                 />
 
-                {/* ── Google Search Console Card (below Lead Ingestion) ────── */}
-                {bu.google_search_console_site ? (
-                  <div
-                    className="card animate-fade-in"
-                    style={{ borderColor: "rgba(245,158,11,0.2)", background: "rgba(245,158,11,0.04)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="material-symbols-outlined text-base" style={{ color: "#fbbf24" }}>
-                        travel_explore
-                      </span>
-                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                        Google Search Console
-                      </h2>
-                      <span
-                        style={{
-                          background: "rgba(245,158,11,0.15)",
-                          color: "#fbbf24",
-                          borderRadius: "9999px",
-                          padding: "0.1rem 0.55rem",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Coming Soon
-                      </span>
-                    </div>
-                    <div
-                      className="p-3 rounded-xl font-mono text-xs"
-                      style={{ background: "var(--bg-elevated)", color: "var(--text-muted)" }}
-                    >
-                      {bu.google_search_console_site}
-                    </div>
-                    <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
-                      GSC OAuth connection is being built. Once connected, Clicks, Impressions,
-                      CTR, and Average Position will appear here, grouped by query and page.
-                    </p>
-                  </div>
-                ) : (
-                  <div
-                    className="card animate-fade-in"
-                    style={{ borderColor: "rgba(107,114,128,0.2)", background: "rgba(107,114,128,0.03)" }}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="material-symbols-outlined text-base" style={{ color: "var(--text-muted)" }}>
-                        travel_explore
-                      </span>
-                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
-                        Google Search Console
-                      </h2>
-                    </div>
-                    <p className="text-xs" style={{ color: "var(--text-muted)" }}>
-                      No GSC property configured. Edit the Business Profile to add a verified Search Console property.
-                    </p>
-                    {canEdit && (
-                      <button
-                        className="btn btn-ghost mt-3"
-                        style={{ fontSize: "0.8rem" }}
-                        onClick={() => setShowEditModal(true)}
-                      >
-                        <Icon name="edit" size="sm" />
-                        Add GSC Property
-                      </button>
-                    )}
-                  </div>
-                )}
+                {/* ── Google Search Console Card (below Brand Intelligence) ─── */}
+                <GscMetricsCard
+                  buId={buId}
+                  siteUrl={bu.gsc_site_url || bu.google_search_console_site}
+                  gscConnected={Boolean(bu.gsc_connected)}
+                  gscMetrics={bu.gsc_metrics}
+                  onConnectGsc={handleConnectGsc}
+                  onSyncGsc={handleSyncGsc}
+                  onDisconnect={canEdit ? handleDisconnectGsc : undefined}
+                  loadingSync={syncingGsc}
+                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                />
 
               </div>
 
