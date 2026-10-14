@@ -446,10 +446,13 @@ export default function BuCommandCenterPage() {
     }
   };
 
-  const handleConnectGsc = () => {
+  const handleConnectGsc = async () => {
     if (!bu) return;
-    // Redirect to the OAuth initiation endpoint (server handles the Google redirect)
-    api.gsc.initiateAuth(buId);
+    try {
+      await api.gsc.initiateAuth(buId);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to start GSC connection. Please try again.");
+    }
   };
 
   const handleSyncGsc = async () => {

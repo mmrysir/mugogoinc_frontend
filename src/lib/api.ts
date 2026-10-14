@@ -597,11 +597,12 @@ export const api = {
     me: () => request<AuthUser>("/auth/me"),
   },
   gsc: {
-    /** Navigates the browser to the Google OAuth consent page for a BU.
-     *  This is a redirect flow — it does NOT use the request() helper. */
-    initiateAuth: (buId: string) => {
-      const baseUrl = getApiBaseUrl();
-      window.location.href = `${baseUrl}/business-units/${buId}/gsc/auth`;
+    /** Fetch the Google OAuth consent URL (authenticated), then redirect the browser to it. */
+    initiateAuth: async (buId: string): Promise<void> => {
+      const data = await request<{ auth_url: string }>(
+        `/business-units/${buId}/gsc/auth-url`
+      );
+      window.location.href = data.auth_url;
     },
     /** Trigger a fresh Search Analytics sync and return updated metrics. */
     sync: (buId: string) =>
