@@ -45,17 +45,22 @@ jobs:
             echo "--> Navigating to Frontend directory"
             cd /var/www/mugogoinc/mugogoinc_frontend
 
-            echo "--> Ensuring public remote URL (no embedded credentials)"
-            git remote set-url origin https://github.com/mmrysir/mugogoinc_frontend.git
-            git config --local credential.helper ""
-            export GIT_TERMINAL_PROMPT=0
-
-            echo "--> Pulling latest code from main"
-            if ! git diff --quiet -- .env.production; then
-              echo "--> Preserving server-local .env.production before updating code"
-              git -c user.name="Production deploy" -c user.email="production-deploy@localhost" stash push --message "Preserve server-local .env.production before deploy" -- .env.production
+            echo "--> Fetching latest code via public tarball (no git auth required)"
+            if [ -f .env.production ]; then
+              cp .env.production /tmp/.env.production.mugogo
             fi
-            git pull origin main
+            cd /var/www/mugogoinc
+            rm -rf mugogoinc_frontend_new
+            mkdir mugogoinc_frontend_new
+            curl -fsSL https://github.com/mmrysir/mugogoinc_frontend/archive/refs/heads/main.tar.gz | tar -xz -C mugogoinc_frontend_new --strip-components=1
+            if [ -f /tmp/.env.production.mugogo ]; then
+              cp /tmp/.env.production.mugogo mugogoinc_frontend_new/.env.production
+              rm -f /tmp/.env.production.mugogo
+            fi
+            rm -rf mugogoinc_frontend_old
+            mv mugogoinc_frontend mugogoinc_frontend_old
+            mv mugogoinc_frontend_new mugogoinc_frontend
+            cd mugogoinc_frontend
             test -n "$NEXT_PUBLIC_API_URL" || { echo "NEXT_PUBLIC_API_URL was not provided"; exit 1; }
 
             echo "--> Installing dependencies & Building Next.js production bundle"
