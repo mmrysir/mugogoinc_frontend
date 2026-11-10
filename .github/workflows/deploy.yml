@@ -47,6 +47,8 @@ jobs:
 
             echo "--> Ensuring public remote URL (no embedded credentials)"
             git remote set-url origin https://github.com/mmrysir/mugogoinc_frontend.git
+            git config --local credential.helper ""
+            export GIT_TERMINAL_PROMPT=0
 
             echo "--> Pulling latest code from main"
             if ! git diff --quiet -- .env.production; then
