@@ -32,8 +32,9 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const url = `${baseUrl}${path}`;
   const token = getAccessToken();
 
+  let res: Response;
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       ...options,
       headers: {
         "Content-Type": "application/json",
@@ -62,6 +63,11 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   } catch (error) {
     if (typeof window !== "undefined") {
       console.error("API request failed", { url, error });
+    }
+    if (error instanceof TypeError) {
+      throw new Error(
+        `Failed to reach the API at ${url}. Ensure the backend is running (uvicorn app.main:app) and NEXT_PUBLIC_API_URL is set correctly.`
+      );
     }
     throw error;
   }
