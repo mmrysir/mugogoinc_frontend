@@ -45,6 +45,9 @@ jobs:
             echo "--> Navigating to Frontend directory"
             cd /var/www/mugogoinc/mugogoinc_frontend
 
+            echo "--> Ensuring public remote URL (no embedded credentials)"
+            git remote set-url origin https://github.com/mmrysir/mugogoinc_frontend.git
+
             echo "--> Pulling latest code from main"
             if ! git diff --quiet -- .env.production; then
               echo "--> Preserving server-local .env.production before updating code"
