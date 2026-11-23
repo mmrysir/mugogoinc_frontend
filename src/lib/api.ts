@@ -141,6 +141,41 @@ export interface GscMetrics {
   raw_rows?: GscQueryRow[];
 }
 
+// ── Website Audit / Lead Magnet Types ────────────────────────────────────────
+
+export interface AuditCheck {
+  name: string;
+  passed: boolean;
+  detail?: string | null;
+}
+
+export interface AuditPillar {
+  name: string;
+  score: number;
+  checks: AuditCheck[];
+}
+
+export interface AuditReport {
+  audit_id: number;
+  url: string;
+  business_name: string;
+  industry?: string | null;
+  overall_score: number;
+  pillars: AuditPillar[];
+  generated_at: string;
+  status: string;
+}
+
+export interface AuditLead {
+  id: number;
+  business_name: string;
+  target_url: string;
+  email: string;
+  industry?: string | null;
+  overall_score: number;
+  created_at: string;
+}
+
 export interface BusinessUnit {
   id: string;
   organization_id: string;
@@ -417,6 +452,23 @@ export const api = {
           body: JSON.stringify(campaigns),
         }
       ),
+  },
+
+  audit: {
+    run: (body: {
+      url: string;
+      business_name: string;
+      email: string;
+      industry?: string;
+    }) =>
+      request<AuditReport>(
+        "/audit/run",
+        {
+          method: "POST",
+          body: JSON.stringify(body),
+        }
+      ),
+    get: (auditId: number) => request<AuditReport>(`/audit/${auditId}`),
   },
 
   organizations: {
