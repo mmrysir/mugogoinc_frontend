@@ -174,6 +174,14 @@ export default function AuditWizard({
             WhatsApp Number (optional)
           </label>
           <input value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="w-full rounded-xl px-3 py-2 mb-6 text-sm outline-none" style={{ background: "var(--bg-base)", border: "1px solid var(--border)", color: "var(--text-primary)" }} />
+          {auditing && (
+            <div className="mb-6 flex flex-col items-center py-4" data-testid="audit-loading">
+              <span className="material-symbols-outlined text-4xl mb-3 animate-spin text-[var(--accent-blue)]">refresh</span>
+              <p className="text-sm" style={{ color: "var(--text-secondary)" }}>
+                Reading live pages, scanning mobile speed, inspecting ad tags...
+              </p>
+            </div>
+          )}
           <div className="flex gap-3">
             <button onClick={() => setStep(1)} className="flex-1 rounded-xl py-2.5 text-sm font-semibold" style={{ background: "var(--bg-elevated)", color: "var(--text-primary)" }}>
               Back
