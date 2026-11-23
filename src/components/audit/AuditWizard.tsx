@@ -37,13 +37,13 @@ export default function AuditWizard({
     setAuditing(true);
     setError(null);
     try {
-      const report = await api.audit.run({
+      const result = await api.audit.run({
         url: url.trim(),
         business_name: businessName.trim(),
         email: email.trim(),
         industry,
       });
-      onComplete(report);
+      onComplete(result.audit);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Audit failed. Please try again.");
     } finally {

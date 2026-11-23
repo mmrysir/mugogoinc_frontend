@@ -161,9 +161,22 @@ export interface AuditReport {
   business_name: string;
   industry?: string | null;
   overall_score: number;
+  status: string;
+  scores?: {
+    overall: number;
+    passed_count: number;
+    total_count: number;
+  };
+  findings?: AuditFinding[];
   pillars: AuditPillar[];
   generated_at: string;
-  status: string;
+}
+
+export interface AuditFinding {
+  pillar: string;
+  check: string;
+  passed: boolean;
+  details?: string | null;
 }
 
 export interface AuditLead {
@@ -174,6 +187,12 @@ export interface AuditLead {
   industry?: string | null;
   overall_score: number;
   created_at: string;
+}
+
+export interface AuditRunResponse {
+  status: string;
+  audit: AuditReport;
+  lead: AuditLead;
 }
 
 export interface BusinessUnit {
@@ -461,7 +480,7 @@ export const api = {
       email: string;
       industry?: string;
     }) =>
-      request<AuditReport>(
+      request<AuditRunResponse>(
         "/audit/run",
         {
           method: "POST",
