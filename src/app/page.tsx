@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, DashboardStats } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
 import Icon from "@/components/Icon";
@@ -101,6 +102,30 @@ export default function DashboardPage() {
             </span>
           </div>
         </div>
+
+        {/* Free Audit Lead Magnet CTA */}
+        <Link
+          href="/audit"
+          className="card mb-6 animate-fade-in shadow-md-1 flex items-center justify-between gap-4 hover:shadow-md-2 transition-all"
+          style={{ borderColor: "var(--border-accent)", background: "var(--bg-card)" }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="material-symbols-outlined text-2xl" style={{ color: "var(--accent-blue)" }}>
+              fact_check
+            </span>
+            <div>
+              <div className="font-bold text-sm" style={{ color: "var(--text-primary)" }}>
+                Free Website Marketing Audit
+              </div>
+              <div className="text-xs" style={{ color: "var(--text-muted)" }}>
+                Run a free multi-pillar health check on any prospect&apos;s URL and capture the lead.
+              </div>
+            </div>
+          </div>
+          <span className="text-xs font-semibold px-3 py-1 rounded-full text-white" style={{ background: "var(--accent-blue)" }}>
+            Run Audit →
+          </span>
+        </Link>
 
         {error && (
           <div className="card mb-6 animate-fade-in shadow-md-1"

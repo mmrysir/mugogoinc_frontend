@@ -12,6 +12,7 @@ const NAV = [
   { href: "/onboarding", icon: "add_business", label: "Client Onboarding" },
   { href: "/blog-admin", icon: "article", label: "Blog & Human Approval" },
   { href: "/marketing-hub", icon: "insights", label: "Keyword & Ad Monitor" },
+  { href: "/audit", icon: "fact_check", label: "Free Website Audit" },
   { href: "/blog", icon: "language", label: "Public Blog Hub" },
 ];
 
