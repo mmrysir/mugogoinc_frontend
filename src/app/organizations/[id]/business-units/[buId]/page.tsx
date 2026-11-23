@@ -401,6 +401,7 @@ export default function BuCommandCenterPage() {
   const [syncingGbp, setSyncingGbp] = useState(false);
   const [syncingGsc, setSyncingGsc] = useState(false);
   const [activeTab, setActiveTab] = useState<"audit" | "leads" | "keywords" | "settings">("audit");
+  const [latestAudit, setLatestAudit] = useState<any>(null);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -511,6 +512,13 @@ export default function BuCommandCenterPage() {
       setLeads(leadsData.items);
       setLeadsTotal(leadsData.total);
       setUser(userData);
+
+      // Fetch latest audit for KPI header
+      api.businessUnitAudit.list(orgId, buId).then((h) => {
+        if (h.length > 0) {
+          api.businessUnitAudit.get(orgId, buId, h[0].id).then(setLatestAudit).catch(() => {});
+        }
+      }).catch(() => {});
 
       // Auto-fetch scraped metadata from client website if primary_url is configured
       if (buData.primary_url) {
@@ -644,6 +652,51 @@ export default function BuCommandCenterPage() {
                 </Link>
               </div>
             </div>
+            {/* ── 4-Card KPI Insights Strip ──────────────────────────────────── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* KPI 1: Health Score */}
+              <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>🛡️</div>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
+                  <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                    {latestAudit ? `${Math.round(latestAudit.overall_score)}/100 (Grade ${latestAudit.grade})` : "Not Audited"}
+                  </p>
+                </div>
+              </div>
+
+              {/* KPI 2: Google Rating */}
+              <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>⭐</div>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
+                  <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
+                    {bu.google_business_rating ? `${bu.google_business_rating}★ (${bu.google_business_review_count ?? 0} reviews)` : "Not Linked"}
+                  </p>
+                </div>
+              </div>
+
+              {/* KPI 3: Total Leads */}
+              <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>📈</div>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Total Leads</p>
+                  <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{leadsTotal} Leads</p>
+                </div>
+              </div>
+
+              {/* KPI 4: Integrations */}
+              <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6" }}>🔗</div>
+                <div>
+                  <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
+                  <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                    {bu.google_business_place_id ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="accent-line mb-8" />
 
             {/* ── Tab Navigation ─────────────────────────────────────────────── */}
