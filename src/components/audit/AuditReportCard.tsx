@@ -29,6 +29,46 @@ export default function AuditReportCard({ report }: { report: AuditRunResponse }
         border: "1px solid var(--border)",
       }}
     >
+      {/* 4-KPI strip */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+          <div className="text-lg">🛡️</div>
+          <div>
+            <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
+            <p className="text-sm font-bold" style={{ color: g.color }}>
+              {Math.round(overall)}/100 ({g.label})
+            </p>
+          </div>
+        </div>
+        <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+          <div className="text-lg">⭐</div>
+          <div>
+            <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
+            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+              {rd.metrics?.google_rating ? `${rd.metrics.google_rating}★ (${rd.metrics.google_reviews ?? 0} reviews)` : "Not Linked"}
+            </p>
+          </div>
+        </div>
+        <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+          <div className="text-lg">✅</div>
+          <div>
+            <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Checks Passed</p>
+            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+              {passed}/{total}
+            </p>
+          </div>
+        </div>
+        <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+          <div className="text-lg">⚠️</div>
+          <div>
+            <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Priority Gaps</p>
+            <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+              {scores.priority_count ?? 0}
+            </p>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center gap-6">
         {/* Score ring */}
         <div className="flex-shrink-0 flex flex-col items-center">
