@@ -1,22 +1,25 @@
 "use client";
 
-import { AuditReport } from "@/lib/api";
+import { AuditRunResponse } from "@/lib/api";
 
 function grade(score: number): { label: string; color: string } {
-  if (score >= 90) return { label: "Excellent", color: "var(--accent-emerald)" };
-  if (score >= 70) return { label: "Good", color: "var(--accent-emerald)" };
-  if (score >= 50) return { label: "Fair", color: "var(--accent-amber)" };
-  if (score >= 30) return { label: "Needs Work", color: "var(--accent-amber)" };
-  return { label: "Critical", color: "var(--accent-amber)" };
+  if (score >= 90) return { label: "A+", color: "var(--accent-emerald)" };
+  if (score >= 80) return { label: "A", color: "var(--accent-emerald)" };
+  if (score >= 70) return { label: "B", color: "var(--accent-emerald)" };
+  if (score >= 60) return { label: "C", color: "var(--accent-amber)" };
+  if (score >= 50) return { label: "D", color: "var(--accent-amber)" };
+  return { label: "F", color: "var(--accent-amber)" };
 }
 
-export default function AuditReportCard({ report }: { report: AuditReport }) {
-  const overall = report.overall_score ?? 0;
+export default function AuditReportCard({ report }: { report: AuditRunResponse }) {
+  const rd = report.report_data || {};
+  const overall = rd.scores?.overall ?? report.overall_score ?? 0;
   const g = grade(overall);
-  const pillars = report.pillars || [];
-  const passed = report.scores?.passed_count ?? pillars.reduce((a, p) => a + (p.checks || []).filter((c) => c.passed).length, 0);
-  const total = report.scores?.total_count ?? pillars.reduce((a, p) => a + (p.checks || []).length, 0);
-  const failing = pillars.filter((p) => (p.score ?? 0) < 50).map((p) => p.name);
+  const scores = rd.scores || {};
+  const passed = scores.passed_count ?? 0;
+  const total = scores.total_count ?? 0;
+  const pillars = rd.pillars || [];
+  const failing = pillars.filter((p: any) => (p.score ?? 0) < 50).map((p: any) => p.name);
 
   return (
     <div
@@ -48,7 +51,7 @@ export default function AuditReportCard({ report }: { report: AuditReport }) {
             </div>
           </div>
           <div className="mt-2 text-sm font-semibold" style={{ color: g.color }}>
-            {g.label}
+            Grade {g.label}
           </div>
         </div>
 
@@ -58,7 +61,7 @@ export default function AuditReportCard({ report }: { report: AuditReport }) {
             {report.business_name} — Marketing Health Report Card
           </h2>
           <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
-            {report.url} · {report.industry || "General"}
+            {report.target_url} · {report.industry || rd.industry || "General"}
           </p>
           <div className="flex flex-wrap gap-3 mb-3">
             <span
@@ -72,6 +75,12 @@ export default function AuditReportCard({ report }: { report: AuditReport }) {
               style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}
             >
               {pillars.length} pillars
+            </span>
+            <span
+              className="text-xs font-semibold px-2 py-1 rounded-full"
+              style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}
+            >
+              {scores.priority_count ?? 0} priority gaps
             </span>
           </div>
           {failing.length > 0 && (

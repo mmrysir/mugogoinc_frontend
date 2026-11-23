@@ -28,7 +28,7 @@ export default function AuditLandingPage() {
           </button>
           <h1 className="text-3xl font-bold mb-2">Your Marketing Health Report</h1>
           <p className="text-sm mb-6" style={{ color: "var(--text-muted)" }}>
-            {report.business_name} · {report.url}
+            {report.business_name} · {report.target_url}
           </p>
           <AuditReportView report={report} />
         </div>

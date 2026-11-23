@@ -155,45 +155,88 @@ export interface AuditPillar {
   checks: AuditCheck[];
 }
 
-export interface AuditReport {
-  audit_id: number;
-  url: string;
-  business_name: string;
-  industry?: string | null;
-  overall_score: number;
-  status: string;
-  scores?: {
-    overall: number;
-    passed_count: number;
-    total_count: number;
-  };
-  findings?: AuditFinding[];
-  pillars: AuditPillar[];
-  generated_at: string;
-}
-
 export interface AuditFinding {
   pillar: string;
   check: string;
   passed: boolean;
+  status?: string;
   details?: string | null;
+  impact?: string;
 }
 
-export interface AuditLead {
-  id: number;
-  business_name: string;
-  target_url: string;
-  email: string;
-  industry?: string | null;
-  overall_score: number;
-  created_at: string;
+export interface AuditPillar {
+  name: string;
+  score: number;
+  grade: string;
+  weight: number;
+  passed: number;
+  failed: number;
+  total: number;
+  checks: AuditCheck[];
+}
+
+export interface AuditCheck {
+  title: string;
+  status: "strong" | "needs_work" | "priority";
+  evidence: string;
+  impact?: string;
+}
+
+export interface AuditCompetitor {
+  name: string;
+  rating: number;
+  reviews: number;
+  address: string;
 }
 
 export interface AuditRunResponse {
-  status: string;
-  audit: AuditReport;
-  lead: AuditLead;
+  id: number;
+  business_name: string;
+  target_url: string;
+  industry?: string | null;
+  overall_score: number;
+  report_data: {
+    url: string;
+    business_name: string;
+    primary_city: string;
+    industry: string;
+    status: string;
+    grade: string;
+    scores: {
+      overall: number;
+      passed_count: number;
+      needs_work_count: number;
+      priority_count: number;
+      total_count: number;
+    };
+    metrics: {
+      server_response_ms: number;
+      mobile_performance?: number | null;
+      desktop_performance?: number | null;
+      lcp?: string | null;
+      fcp?: string | null;
+      google_rating?: number | null;
+      google_reviews?: number | null;
+      competitor_median_reviews?: number | null;
+      maps_rank?: number | null;
+    };
+    competitors: AuditCompetitor[];
+    gbp_profile: Record<string, any>;
+    pillars: AuditPillar[];
+    action_plan: Array<{
+      priority: string;
+      pillar: string;
+      title: string;
+      evidence: string;
+      impact: string;
+    }>;
+    findings: AuditFinding[];
+  };
+  created_at: string;
 }
+
+// Backwards-compat alias
+export type AuditReport = AuditRunResponse;
 
 export interface BusinessUnit {
   id: string;
@@ -479,6 +522,8 @@ export const api = {
       business_name: string;
       email: string;
       industry?: string;
+      primary_city?: string;
+      phone?: string;
     }) =>
       request<AuditRunResponse>(
         "/audit/run",
