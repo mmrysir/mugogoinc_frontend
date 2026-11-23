@@ -671,6 +671,7 @@ export default function BuCommandCenterPage() {
             </div>
 
             {/* ── Main Grid ─────────────────────────────────────────────────── */}
+            {activeTab !== "audit" && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
               {/* ── LEFT COLUMN: Profile + Ingestion ────────────────────────── */}
@@ -831,41 +832,6 @@ export default function BuCommandCenterPage() {
                     </button>
                   </div>
                 </div>
-
-                {activeTab === "audit" && (
-                  <>
-                    {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
-                    <BrandIntelligenceCard
-                      businessUnit={bu}
-                      onDiscoverSocials={handleDiscoverSocials}
-                      loadingDiscovery={discoveringSocials}
-                      onSyncGbp={handleSyncGBP}
-                      loadingSyncGbp={syncingGbp}
-                      onEditProfile={() => setShowEditModal(true)}
-                    />
-
-                    {/* ── Google Search Console Card (below Brand Intelligence) ─── */}
-                    <GscMetricsCard
-                      buId={buId}
-                      siteUrl={bu.gsc_site_url || bu.google_search_console_site}
-                      gscConnected={Boolean(bu.gsc_connected)}
-                      gscMetrics={bu.gsc_metrics}
-                      onConnectGsc={handleConnectGsc}
-                      onSyncGsc={handleSyncGsc}
-                      onDisconnect={canEdit ? handleDisconnectGsc : undefined}
-                      loadingSync={syncingGsc}
-                      onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                    />
-
-                    {/* ── Marketing Health Audit Card ─────────────────────────── */}
-                    <AuditCard
-                      orgId={orgId}
-                      bu={bu}
-                      onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                      userRole={user?.role}
-                    />
-                  </>
-                )}
 
               </div>
 
@@ -1220,6 +1186,43 @@ export default function BuCommandCenterPage() {
                 </div>
               </div>
             </div>
+            )}
+
+            {activeTab === "audit" && (
+              <div className="space-y-6 mt-6">
+                {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
+                <BrandIntelligenceCard
+                  businessUnit={bu}
+                  onDiscoverSocials={handleDiscoverSocials}
+                  loadingDiscovery={discoveringSocials}
+                  onSyncGbp={handleSyncGBP}
+                  loadingSyncGbp={syncingGbp}
+                  onEditProfile={() => setShowEditModal(true)}
+                />
+
+                {/* ── Google Search Console Card ─────────────────────────── */}
+                <GscMetricsCard
+                  buId={buId}
+                  siteUrl={bu.gsc_site_url || bu.google_search_console_site}
+                  gscConnected={Boolean(bu.gsc_connected)}
+                  gscMetrics={bu.gsc_metrics}
+                  onConnectGsc={handleConnectGsc}
+                  onSyncGsc={handleSyncGsc}
+                  onDisconnect={canEdit ? handleDisconnectGsc : undefined}
+                  loadingSync={syncingGsc}
+                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                />
+
+                {/* ── Marketing Health Audit Card ─────────────────────────── */}
+                <AuditCard
+                  orgId={orgId}
+                  bu={bu}
+                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                  userRole={user?.role}
+                />
+              </div>
+            )}
+
           </>
         )}
 
