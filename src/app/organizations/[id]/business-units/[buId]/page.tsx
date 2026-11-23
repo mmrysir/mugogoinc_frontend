@@ -400,6 +400,7 @@ export default function BuCommandCenterPage() {
   const [socialSuccessMessage, setSocialSuccessMessage] = useState("");
   const [syncingGbp, setSyncingGbp] = useState(false);
   const [syncingGsc, setSyncingGsc] = useState(false);
+  const [activeTab, setActiveTab] = useState<"audit" | "leads" | "keywords" | "settings">("audit");
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -645,6 +646,30 @@ export default function BuCommandCenterPage() {
             </div>
             <div className="accent-line mb-8" />
 
+            {/* ── Tab Navigation ─────────────────────────────────────────────── */}
+            <div className="flex gap-2 mb-6 border-b" style={{ borderColor: "var(--border)" }}>
+              {[
+                { id: "audit", label: "Audit & Action Plan", icon: "fact_check" },
+                { id: "leads", label: "Leads & Tracking", icon: "bolt" },
+                { id: "keywords", label: "Keyword & Ad Research", icon: "search" },
+                { id: "settings", label: "Digital Footprint & Settings", icon: "settings" },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all"
+                  style={{
+                    color: activeTab === tab.id ? "var(--accent-blue)" : "var(--text-muted)",
+                    borderBottom: activeTab === tab.id ? "2px solid var(--accent-blue)" : "2px solid transparent",
+                    marginBottom: "-1px",
+                  }}
+                >
+                  <span className="material-symbols-outlined text-base">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
             {/* ── Main Grid ─────────────────────────────────────────────────── */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
@@ -807,36 +832,40 @@ export default function BuCommandCenterPage() {
                   </div>
                 </div>
 
-                {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
-                <BrandIntelligenceCard
-                  businessUnit={bu}
-                  onDiscoverSocials={handleDiscoverSocials}
-                  loadingDiscovery={discoveringSocials}
-                  onSyncGbp={handleSyncGBP}
-                  loadingSyncGbp={syncingGbp}
-                  onEditProfile={() => setShowEditModal(true)}
-                />
+                {activeTab === "audit" && (
+                  <>
+                    {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
+                    <BrandIntelligenceCard
+                      businessUnit={bu}
+                      onDiscoverSocials={handleDiscoverSocials}
+                      loadingDiscovery={discoveringSocials}
+                      onSyncGbp={handleSyncGBP}
+                      loadingSyncGbp={syncingGbp}
+                      onEditProfile={() => setShowEditModal(true)}
+                    />
 
-                {/* ── Google Search Console Card (below Brand Intelligence) ─── */}
-                <GscMetricsCard
-                  buId={buId}
-                  siteUrl={bu.gsc_site_url || bu.google_search_console_site}
-                  gscConnected={Boolean(bu.gsc_connected)}
-                  gscMetrics={bu.gsc_metrics}
-                  onConnectGsc={handleConnectGsc}
-                  onSyncGsc={handleSyncGsc}
-                  onDisconnect={canEdit ? handleDisconnectGsc : undefined}
-                  loadingSync={syncingGsc}
-                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                />
+                    {/* ── Google Search Console Card (below Brand Intelligence) ─── */}
+                    <GscMetricsCard
+                      buId={buId}
+                      siteUrl={bu.gsc_site_url || bu.google_search_console_site}
+                      gscConnected={Boolean(bu.gsc_connected)}
+                      gscMetrics={bu.gsc_metrics}
+                      onConnectGsc={handleConnectGsc}
+                      onSyncGsc={handleSyncGsc}
+                      onDisconnect={canEdit ? handleDisconnectGsc : undefined}
+                      loadingSync={syncingGsc}
+                      onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                    />
 
-                {/* ── Marketing Health Audit Card ─────────────────────────── */}
-                <AuditCard
-                  orgId={orgId}
-                  bu={bu}
-                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                  userRole={user?.role}
-                />
+                    {/* ── Marketing Health Audit Card ─────────────────────────── */}
+                    <AuditCard
+                      orgId={orgId}
+                      bu={bu}
+                      onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                      userRole={user?.role}
+                    />
+                  </>
+                )}
 
               </div>
 
