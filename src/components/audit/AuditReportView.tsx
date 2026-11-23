@@ -1,6 +1,7 @@
 "use client";
 
 import { AuditReport } from "@/lib/api";
+import AuditReportCard from "@/components/audit/AuditReportCard";
 
 export default function AuditReportView({
   report,
@@ -9,13 +10,6 @@ export default function AuditReportView({
 }) {
   const pillars = report.pillars || [];
   const overall = report.overall_score ?? 0;
-  const passedChecks = pillars.reduce(
-    (acc, p) => acc + (p.checks || []).filter((c) => c.passed).length,
-    0
-  );
-  const totalChecks = pillars.reduce((acc, p) => acc + (p.checks || []).length, 0);
-
-  const scoreColor = overall >= 70 ? "var(--accent-emerald)" : overall >= 40 ? "var(--accent-amber)" : "var(--accent-amber)";
 
   const bookCall = () => {
     const subject = encodeURIComponent(`Marketing audit follow-up — ${report.business_name}`);
@@ -29,26 +23,17 @@ export default function AuditReportView({
 
   return (
     <div className="space-y-6">
-      {/* Overall score */}
-      <div className="rounded-2xl p-6 shadow-md-1 text-center" style={{ background: "var(--bg-card)" }}>
-        <div className="text-5xl font-bold" style={{ color: scoreColor }}>
-          {Math.round(overall)}
-          <span className="text-lg" style={{ color: "var(--text-muted)" }}>/100</span>
-        </div>
-        <div className="text-sm mt-1" style={{ color: "var(--text-secondary)" }}>
-          Overall Marketing Health Score
-        </div>
-        <p className="text-xs mt-3" style={{ color: "var(--text-muted)" }}>
-          {passedChecks}/{totalChecks} diagnostic checks passed
-        </p>
-        <button
-          onClick={bookCall}
-          className="mt-5 w-full rounded-xl py-3 text-sm font-semibold text-white"
-          style={{ background: "var(--accent-blue)" }}
-        >
-          Let Mugogo Inc fix these gaps — Book a Strategy Call
-        </button>
-      </div>
+      {/* Report card (score + summary) */}
+      <AuditReportCard report={report} />
+
+      {/* CTA */}
+      <button
+        onClick={bookCall}
+        className="w-full rounded-xl py-3 text-sm font-semibold text-white"
+        style={{ background: "var(--accent-blue)" }}
+      >
+        Let Mugogo Inc fix these gaps — Book a Strategy Call
+      </button>
 
       {/* Pillars */}
       <div className="space-y-4">
