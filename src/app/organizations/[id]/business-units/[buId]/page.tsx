@@ -13,6 +13,7 @@ import {
   AuthUser,
 } from "@/lib/api";
 import Sidebar from "@/components/Sidebar";
+import AuditCard from "@/components/audit/AuditCard";
 import { RouteTypeBadge, StatusBadge, ChannelBadge } from "@/components/Badges";
 import Icon from "@/components/Icon";
 import { SearchableMultiSelect } from "@/components/ui/SearchableMultiSelect";
@@ -827,6 +828,14 @@ export default function BuCommandCenterPage() {
                   onDisconnect={canEdit ? handleDisconnectGsc : undefined}
                   loadingSync={syncingGsc}
                   onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                />
+
+                {/* ── Marketing Health Audit Card ─────────────────────────── */}
+                <AuditCard
+                  orgId={orgId}
+                  bu={bu}
+                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                  userRole={user?.role}
                 />
 
               </div>

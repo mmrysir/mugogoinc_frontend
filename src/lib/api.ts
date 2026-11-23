@@ -261,6 +261,11 @@ export interface BusinessUnit {
   gsc_site_url?: string | null;
   gsc_connected?: boolean;
   gsc_metrics?: GscMetrics | null;
+  // Audit profile fields
+  website_url?: string | null;
+  city?: string | null;
+  industry?: string | null;
+  phone?: string | null;
   created_at: string;
 }
 
@@ -718,6 +723,66 @@ export const api = {
       }),
     me: () => request<AuthUser>("/auth/me"),
   },
+  businessUnitAudit: {
+    updateProfile: (orgId: string, buId: string, body: {
+      name?: string;
+      website_url?: string;
+      city?: string;
+      industry?: string;
+      phone?: string;
+    }) =>
+      request<BusinessUnit>(`/organizations/${orgId}/business-units/${buId}/audit-profile`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+    run: (orgId: string, buId: string, body?: {
+      url?: string;
+      business_name?: string;
+      city?: string;
+      industry?: string;
+      phone?: string;
+      save_to_profile?: boolean;
+    }) =>
+      request<AuditRunResponse>(`/organizations/${orgId}/business-units/${buId}/audits`, {
+        method: "POST",
+        body: JSON.stringify(body || {}),
+      }),
+    list: (orgId: string, buId: string) =>
+      request<Array<{ id: number; created_at: string; overall_score: number; grade: string; score_delta: number | null }>>(
+        `/organizations/${orgId}/business-units/${buId}/audits`
+      ),
+    get: (orgId: string, buId: string, auditId: number) =>
+      request<{
+        id: number;
+        business_unit_id: string;
+        organization_id: string;
+        created_at: string;
+        overall_score: number;
+        grade: string;
+        client_summary: {
+          online_visibility: number;
+          reputation_and_trust: number;
+          lead_capture: number;
+          overall_score: number;
+          grade: string;
+          score_delta: number | null;
+          top_priorities: Array<{ title: string; evidence: string; impact: string; priority: string }>;
+          competitor_rating: number | null;
+          competitor_reviews: number | null;
+          competitor_median_reviews: number | null;
+        };
+        agent_diagnostic?: {
+          pillars: any[];
+          action_plan: any[];
+          metrics: Record<string, any>;
+          competitors: any[];
+          gbp_profile: Record<string, any>;
+          findings: any[];
+          scores: Record<string, any>;
+        };
+      }>(`/organizations/${orgId}/business-units/${buId}/audits/${auditId}`),
+  },
+
   gsc: {
     /** Fetch the Google OAuth consent URL (authenticated), then redirect the browser to it. */
     initiateAuth: async (buId: string): Promise<void> => {
