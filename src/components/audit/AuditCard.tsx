@@ -9,9 +9,10 @@ interface AuditCardProps {
   bu: BusinessUnit;
   onEditProfile?: () => void;
   userRole?: string;
+  leadsTotal?: number;
 }
 
-export default function AuditCard({ orgId, bu, onEditProfile, userRole }: AuditCardProps) {
+export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTotal }: AuditCardProps) {
   const buId = bu.id;
   const [history, setHistory] = useState<Array<{ id: number; created_at: string; overall_score: number; grade: string; score_delta: number | null }>>([]);
   const [latestAudit, setLatestAudit] = useState<any>(null);
@@ -111,6 +112,48 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole }: AuditC
           >
             Complete Profile
           </button>
+        </div>
+      )}
+
+      {/* 4-KPI strip */}
+      {latestAudit && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+            <div className="text-lg">🛡️</div>
+            <div>
+              <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
+              <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                {Math.round(latestAudit.overall_score)}/100 ({latestAudit.grade})
+              </p>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+            <div className="text-lg">⭐</div>
+            <div>
+              <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
+              <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                {latestAudit.agent_diagnostic?.metrics?.google_rating
+                  ? `${latestAudit.agent_diagnostic.metrics.google_rating}★ (${latestAudit.agent_diagnostic.metrics.google_reviews ?? 0} reviews)`
+                  : "Not Linked"}
+              </p>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+            <div className="text-lg">📈</div>
+            <div>
+              <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Total Leads</p>
+              <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{leadsTotal ?? 0} Leads</p>
+            </div>
+          </div>
+          <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+            <div className="text-lg">🔗</div>
+            <div>
+              <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
+              <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>
+                {latestAudit.agent_diagnostic?.gbp_profile?.name ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

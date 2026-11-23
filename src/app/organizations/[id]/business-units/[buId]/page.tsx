@@ -668,7 +668,7 @@ export default function BuCommandCenterPage() {
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                    {latestAudit?.agent_diagnostic?.gbp_profile?.rating ? `${latestAudit.agent_diagnostic.gbp_profile.rating}★ (${latestAudit.agent_diagnostic.gbp_profile.user_ratings_total ?? latestAudit.agent_diagnostic.gbp_profile.photo_count ?? 0} reviews)` : bu.google_business_rating ? `${bu.google_business_rating}★ (${bu.google_business_review_count ?? 0} reviews)` : "Not Linked"}
+                    {latestAudit?.agent_diagnostic?.metrics?.google_rating ? `${latestAudit.agent_diagnostic.metrics.google_rating}★ (${latestAudit.agent_diagnostic.metrics.google_reviews ?? 0} reviews)` : bu.google_business_rating ? `${bu.google_business_rating}★ (${bu.google_business_review_count ?? 0} reviews)` : "Not Linked"}
                   </p>
                 </div>
               </div>
@@ -684,7 +684,7 @@ export default function BuCommandCenterPage() {
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
                   <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {bu.google_business_place_id || (latestAudit?.agent_diagnostic?.gbp_profile?.name) ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
+                    {bu.google_business_place_id || latestAudit?.agent_diagnostic?.gbp_profile?.name ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
                   </p>
                 </div>
               </div>
@@ -1242,6 +1242,7 @@ export default function BuCommandCenterPage() {
                   bu={bu}
                   onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
                   userRole={user?.role}
+                  leadsTotal={leadsTotal}
                 />
               </div>
             )}
