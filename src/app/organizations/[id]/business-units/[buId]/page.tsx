@@ -654,7 +654,6 @@ export default function BuCommandCenterPage() {
             </div>
             {/* ── 4-Card KPI Insights Strip ──────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              {/* KPI 1: Health Score */}
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
                 <div className="p-2 rounded-md text-lg" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>🛡️</div>
                 <div>
@@ -664,19 +663,15 @@ export default function BuCommandCenterPage() {
                   </p>
                 </div>
               </div>
-
-              {/* KPI 2: Google Rating */}
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
                 <div className="p-2 rounded-md text-lg" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>⭐</div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
-                    {bu.google_business_rating ? `${bu.google_business_rating}★ (${bu.google_business_review_count ?? 0} reviews)` : "Not Linked"}
+                    {latestAudit?.agent_diagnostic?.gbp_profile?.rating ? `${latestAudit.agent_diagnostic.gbp_profile.rating}★ (${latestAudit.agent_diagnostic.gbp_profile.user_ratings_total ?? latestAudit.agent_diagnostic.gbp_profile.photo_count ?? 0} reviews)` : bu.google_business_rating ? `${bu.google_business_rating}★ (${bu.google_business_review_count ?? 0} reviews)` : "Not Linked"}
                   </p>
                 </div>
               </div>
-
-              {/* KPI 3: Total Leads */}
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
                 <div className="p-2 rounded-md text-lg" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>📈</div>
                 <div>
@@ -684,14 +679,12 @@ export default function BuCommandCenterPage() {
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{leadsTotal} Leads</p>
                 </div>
               </div>
-
-              {/* KPI 4: Integrations */}
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
                 <div className="p-2 rounded-md text-lg" style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6" }}>🔗</div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
                   <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
-                    {bu.google_business_place_id ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
+                    {bu.google_business_place_id || (latestAudit?.agent_diagnostic?.gbp_profile?.name) ? "GBP Connected" : "GBP Pending"} · {bu.gsc_connected ? "GSC Connected" : "GSC Pending"}
                   </p>
                 </div>
               </div>
@@ -1243,6 +1236,18 @@ export default function BuCommandCenterPage() {
 
             {activeTab === "audit" && (
               <div className="space-y-6 mt-6">
+                {/* ── Marketing Health Audit Card ─────────────────────────── */}
+                <AuditCard
+                  orgId={orgId}
+                  bu={bu}
+                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                  userRole={user?.role}
+                />
+              </div>
+            )}
+
+            {activeTab === "settings" && (
+              <div className="space-y-6 mt-6">
                 {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
                 <BrandIntelligenceCard
                   businessUnit={bu}
@@ -1264,14 +1269,6 @@ export default function BuCommandCenterPage() {
                   onDisconnect={canEdit ? handleDisconnectGsc : undefined}
                   loadingSync={syncingGsc}
                   onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                />
-
-                {/* ── Marketing Health Audit Card ─────────────────────────── */}
-                <AuditCard
-                  orgId={orgId}
-                  bu={bu}
-                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                  userRole={user?.role}
                 />
               </div>
             )}
