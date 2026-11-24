@@ -340,7 +340,15 @@ function EditProfileModal({
                 placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
               />
               <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-                Used to query live reviews and ratings via Google Places API.
+                Used to query live reviews and ratings via Google Places API.{" "}
+                <a
+                  href="https://developers.google.com/maps/documentation/javascript/examples/places-placeid-finder"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent-blue)", fontWeight: 600 }}
+                >
+                  Look it up on Google Maps Place ID Finder ↗
+                </a>
               </p>
             </div>
             <div>
@@ -351,6 +359,16 @@ function EditProfileModal({
                 onChange={(e) => setGoogleMapUrl(e.target.value)}
                 placeholder="https://maps.google.com/?cid=..."
               />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                <a
+                  href="https://www.google.com/maps"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "var(--accent-blue)", fontWeight: 600 }}
+                >
+                  Search &amp; copy share URL from Google Maps ↗
+                </a>
+              </p>
             </div>
           </div>
 
