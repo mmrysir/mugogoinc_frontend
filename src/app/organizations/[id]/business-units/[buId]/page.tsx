@@ -465,11 +465,12 @@ function LeadPerformanceStrip({ leads, last7Count }: { leads: Lead[]; last7Count
   const topChannel = channelBuckets(leads)[0];
 
   const items = [
-    { icon: "🕒", label: "Last 7 Days", value: `${last7Count}`, hint: "new leads" },
-    { icon: "🔁", label: "Returning", value: `${returningRate}%`, hint: `${returning} repeat` },
-    { icon: "✅", label: "Delivery Success", value: `${deliveryRate}%`, hint: `${delivered} delivered` },
+    { icon: "schedule", color: "#f59e0b", label: "Last 7 Days", value: `${last7Count}`, hint: "new leads" },
+    { icon: "autorenew", color: "#a78bfa", label: "Returning", value: `${returningRate}%`, hint: `${returning} repeat` },
+    { icon: "check_circle", color: "#22c55e", label: "Delivery Success", value: `${deliveryRate}%`, hint: `${delivered} delivered` },
     {
-      icon: "🎯",
+      icon: "ads_click",
+      color: "#3b82f6",
       label: "Top Channel",
       value: topChannel?.label ?? "—",
       hint: topChannel ? `${topChannel.count} leads` : "no data yet",
@@ -485,7 +486,9 @@ function LeadPerformanceStrip({ leads, last7Count }: { leads: Lead[]; last7Count
             className="p-3 rounded-lg border flex items-center gap-3"
             style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
           >
-            <div className="text-lg">{item.icon}</div>
+            <div style={{ color: item.color }}>
+              <Icon name={item.icon} size="lg" />
+            </div>
             <div className="min-w-0">
               <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{item.label}</p>
               <p className="text-base font-bold truncate" style={{ color: "var(--text-primary)" }}>{item.value}</p>
@@ -1082,7 +1085,9 @@ export default function BuCommandCenterPage() {
             {/* ── 4-Card KPI Insights Strip ──────────────────────────────────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>🛡️</div>
+                <div className="p-2 rounded-md flex items-center justify-center" style={{ background: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>
+                  <Icon name="health_and_safety" size="lg" />
+                </div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
@@ -1091,7 +1096,9 @@ export default function BuCommandCenterPage() {
                 </div>
               </div>
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>⭐</div>
+                <div className="p-2 rounded-md flex items-center justify-center" style={{ background: "rgba(249,115,22,0.12)", color: "#f97316" }}>
+                  <Icon name="star" size="lg" />
+                </div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>
@@ -1100,14 +1107,18 @@ export default function BuCommandCenterPage() {
                 </div>
               </div>
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>📈</div>
+                <div className="p-2 rounded-md flex items-center justify-center" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>
+                  <Icon name="trending_up" size="lg" />
+                </div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Total Leads</p>
                   <p className="text-base font-bold" style={{ color: "var(--text-primary)" }}>{leadsTotal} Leads</p>
                 </div>
               </div>
               <div className="p-3 rounded-lg border flex items-center gap-3" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
-                <div className="p-2 rounded-md text-lg" style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6" }}>🔗</div>
+                <div className="p-2 rounded-md flex items-center justify-center" style={{ background: "rgba(59,130,246,0.12)", color: "#3b82f6" }}>
+                  <Icon name="link" size="lg" />
+                </div>
                 <div>
                   <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
                   <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>

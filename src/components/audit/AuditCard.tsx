@@ -99,8 +99,8 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
           className="mb-4 rounded-xl p-4"
           style={{ background: "rgba(179,38,30,0.08)", border: "1px solid var(--accent-amber)" }}
         >
-          <p className="text-sm font-medium" style={{ color: "var(--accent-amber)" }}>
-            ⚠️ Complete your audit profile to run a diagnostic.
+          <p className="text-sm font-medium flex items-center gap-1.5" style={{ color: "var(--accent-amber)" }}>
+            <Icon name="warning" size="sm" /> Complete your audit profile to run a diagnostic.
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
             Add a website URL and primary city to enable the 6-pillar marketing health audit.
@@ -119,7 +119,7 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
       {latestAudit && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
           <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-            <div className="text-lg">🛡️</div>
+            <div style={{ color: "#f59e0b" }}><Icon name="health_and_safety" size="lg" /></div>
             <div>
               <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
               <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
@@ -128,7 +128,7 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
             </div>
           </div>
           <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-            <div className="text-lg">⭐</div>
+            <div style={{ color: "#f97316" }}><Icon name="star" size="lg" /></div>
             <div>
               <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
               <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
@@ -139,14 +139,14 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
             </div>
           </div>
           <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-            <div className="text-lg">📈</div>
+            <div style={{ color: "#22c55e" }}><Icon name="trending_up" size="lg" /></div>
             <div>
               <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Total Leads</p>
               <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{leadsTotal ?? 0} Leads</p>
             </div>
           </div>
           <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-            <div className="text-lg">🔗</div>
+            <div style={{ color: "#3b82f6" }}><Icon name="link" size="lg" /></div>
             <div>
               <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Integrations</p>
               <p className="text-xs font-semibold" style={{ color: "var(--text-primary)" }}>

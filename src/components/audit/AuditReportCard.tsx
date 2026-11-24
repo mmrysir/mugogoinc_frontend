@@ -1,6 +1,7 @@
 "use client";
 
 import { AuditRunResponse } from "@/lib/api";
+import Icon from "@/components/Icon";
 
 function grade(score: number): { label: string; color: string } {
   if (score >= 90) return { label: "A+", color: "var(--accent-emerald)" };
@@ -32,7 +33,7 @@ export default function AuditReportCard({ report }: { report: AuditRunResponse }
       {/* 4-KPI strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-          <div className="text-lg">🛡️</div>
+          <div style={{ color: "#f59e0b" }}><Icon name="health_and_safety" size="lg" /></div>
           <div>
             <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Health Score</p>
             <p className="text-sm font-bold" style={{ color: g.color }}>
@@ -41,7 +42,7 @@ export default function AuditReportCard({ report }: { report: AuditRunResponse }
           </div>
         </div>
         <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-          <div className="text-lg">⭐</div>
+          <div style={{ color: "#f97316" }}><Icon name="star" size="lg" /></div>
           <div>
             <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Google Rating</p>
             <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
@@ -50,7 +51,7 @@ export default function AuditReportCard({ report }: { report: AuditRunResponse }
           </div>
         </div>
         <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-          <div className="text-lg">✅</div>
+          <div style={{ color: "#22c55e" }}><Icon name="check_circle" size="lg" /></div>
           <div>
             <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Checks Passed</p>
             <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
@@ -59,7 +60,7 @@ export default function AuditReportCard({ report }: { report: AuditRunResponse }
           </div>
         </div>
         <div className="p-3 rounded-lg border flex items-center gap-2" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
-          <div className="text-lg">⚠️</div>
+          <div style={{ color: "#f59e0b" }}><Icon name="warning" size="lg" /></div>
           <div>
             <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Priority Gaps</p>
             <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
