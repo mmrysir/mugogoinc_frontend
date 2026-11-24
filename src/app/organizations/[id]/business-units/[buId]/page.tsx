@@ -111,7 +111,7 @@ function EditProfileModal({
   onSaved: (updated: BusinessUnit) => void;
 }) {
   const [primaryUrl, setPrimaryUrl] = useState(bu.primary_url ?? "");
-  const [websiteUrl, setWebsiteUrl] = useState(bu.website_url ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(bu.website_url ?? bu.primary_url ?? "");
   const [city, setCity] = useState(bu.city ?? "");
   const [industry, setIndustry] = useState(bu.industry ?? "");
   const [phone, setPhone] = useState(bu.phone ?? "");
@@ -138,7 +138,7 @@ function EditProfileModal({
     try {
       const updated = await api.businessUnits.updateProfile(bu.id, {
         primary_url: primaryUrl || null,
-        website_url: websiteUrl || null,
+        website_url: websiteUrl || primaryUrl || null,
         city: city || null,
         industry: industry || null,
         phone: phone || null,
@@ -196,13 +196,16 @@ function EditProfileModal({
           {/* Audit Profile Fields */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="form-label">Audit Website URL</label>
+              <label className="form-label">Audit Website URL (optional)</label>
               <input
                 className="form-input"
                 value={websiteUrl}
                 onChange={(e) => setWebsiteUrl(e.target.value)}
                 placeholder="https://example.com"
               />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                Leave blank to use the primary website.
+              </p>
             </div>
             <div>
               <label className="form-label">Primary City</label>
@@ -373,27 +376,389 @@ function EditProfileModal({
 
 // ── Lead row ─────────────────────────────────────────────────────────────────
 
+const CHANNEL_LABELS: Record<string, string> = {
+  GOOGLE_ADS: "Google Ads",
+  META_LEAD_AD: "Meta Ads",
+  LANDING_PAGE: "Landing Page",
+  TIKTOK: "TikTok",
+  SMS: "SMS",
+};
+
+function attributionLabel(lead: Lead): string {
+  if (lead.gclid) return "Google Ads";
+  if (lead.fbclid) return "Meta Ads";
+  if (lead.utm_source && lead.utm_source.trim()) return lead.utm_source.trim();
+  return CHANNEL_LABELS[lead.source_channel] ?? lead.source_channel;
+}
+
+function channelBuckets(leads: Lead[]): { label: string; count: number }[] {
+  const counts = new Map<string, number>();
+  for (const lead of leads) {
+    const label = attributionLabel(lead);
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  }
+  return Array.from(counts.entries())
+    .map(([label, count]) => ({ label, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
 function LeadRow({ lead }: { lead: Lead }) {
+  const geo = [lead.city, lead.country].filter(Boolean).join(", ");
   return (
     <tr>
       <td>
-        <div className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-          {lead.is_blurred ? lead.full_name : lead.full_name}
+        <div className="flex items-center gap-1.5">
+          <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
+            {lead.full_name}
+          </span>
+          {(lead.is_returning || (lead.submission_count ?? 1) > 1) && (
+            <span
+              className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+              style={{ background: "rgba(167,139,250,0.15)", color: "#a78bfa" }}
+            >
+              RETURNING
+            </span>
+          )}
         </div>
         <div className="text-xs font-mono mt-0.5" style={{ color: "var(--text-muted)" }}>
           {lead.phone_number}
         </div>
+        {geo && (
+          <div className="text-[10px] mt-0.5" style={{ color: "var(--text-muted)" }}>
+            📍 {geo}
+          </div>
+        )}
       </td>
       <td><ChannelBadge channel={lead.source_channel} /></td>
       <td>
-        <StatusBadge value={lead.delivery_status} />
+        <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+          {attributionLabel(lead)}
+        </span>
+        {lead.utm_campaign && (
+          <div
+            className="text-[10px] font-mono truncate max-w-[140px]"
+            style={{ color: "var(--text-muted)" }}
+            title={lead.utm_campaign}
+          >
+            {lead.utm_campaign}
+          </div>
+        )}
       </td>
+      <td><StatusBadge value={lead.delivery_status} /></td>
       <td>
         <div className="text-xs" style={{ color: "var(--text-muted)" }}>
           {new Date(lead.last_activity_at).toLocaleString()}
         </div>
       </td>
     </tr>
+  );
+}
+
+// ── Lead Performance Strip ────────────────────────────────────────────────────
+
+function LeadPerformanceStrip({ leads, last7Count }: { leads: Lead[]; last7Count: number }) {
+  const total = leads.length;
+  const returning = leads.filter((l) => l.is_returning || (l.submission_count ?? 1) > 1).length;
+  const delivered = leads.filter((l) => l.delivery_status === "DELIVERED").length;
+  const deliveryRate = total ? Math.round((delivered / total) * 100) : 0;
+  const returningRate = total ? Math.round((returning / total) * 100) : 0;
+  const topChannel = channelBuckets(leads)[0];
+
+  const items = [
+    { icon: "🕒", label: "Last 7 Days", value: `${last7Count}`, hint: "new leads" },
+    { icon: "🔁", label: "Returning", value: `${returningRate}%`, hint: `${returning} repeat` },
+    { icon: "✅", label: "Delivery Success", value: `${deliveryRate}%`, hint: `${delivered} delivered` },
+    {
+      icon: "🎯",
+      label: "Top Channel",
+      value: topChannel?.label ?? "—",
+      hint: topChannel ? `${topChannel.count} leads` : "no data yet",
+    },
+  ];
+
+  return (
+    <div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {items.map((item) => (
+          <div
+            key={item.label}
+            className="p-3 rounded-lg border flex items-center gap-3"
+            style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}
+          >
+            <div className="text-lg">{item.icon}</div>
+            <div className="min-w-0">
+              <p className="text-xs font-medium" style={{ color: "var(--text-muted)" }}>{item.label}</p>
+              <p className="text-base font-bold truncate" style={{ color: "var(--text-primary)" }}>{item.value}</p>
+              <p className="text-[10px] truncate" style={{ color: "var(--text-muted)" }}>{item.hint}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] mt-2" style={{ color: "var(--text-muted)" }}>
+        Based on the {total} most recent leads.
+      </p>
+    </div>
+  );
+}
+
+// ── Channel Attribution ───────────────────────────────────────────────────────
+
+function ChannelAttributionCard({ leads }: { leads: Lead[] }) {
+  const buckets = channelBuckets(leads).slice(0, 5);
+  const total = leads.length;
+  const colors = ["#06b6d4", "#a78bfa", "#34d399", "#fbbf24", "#fb7185"];
+  const topCampaign = leads.map((l) => l.utm_campaign).find((c) => Boolean(c)) ?? null;
+
+  return (
+    <div className="card animate-fade-in h-full">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>
+            donut_large
+          </span>
+          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+            Channel Attribution
+          </h2>
+        </div>
+        <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+          last {total} leads
+        </span>
+      </div>
+
+      {total === 0 ? (
+        <div className="py-8 text-center" style={{ color: "var(--text-muted)" }}>
+          <Icon name="pie_chart" size="lg" />
+          <p className="mt-2 text-sm">Attribution appears once leads start arriving.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {buckets.map((bucket, idx) => {
+            const pct = Math.round((bucket.count / total) * 100);
+            return (
+              <div key={bucket.label}>
+                <div className="flex items-center justify-between text-xs mb-1">
+                  <span className="font-medium" style={{ color: "var(--text-secondary)" }}>
+                    {bucket.label}
+                  </span>
+                  <span className="font-mono" style={{ color: "var(--text-muted)" }}>
+                    {bucket.count} · {pct}%
+                  </span>
+                </div>
+                <div
+                  className="h-2 rounded-full overflow-hidden"
+                  style={{ background: "var(--bg-elevated)" }}
+                >
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${Math.max(pct, 3)}%`, background: colors[idx % colors.length] }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+          {topCampaign && (
+            <p className="text-xs pt-1" style={{ color: "var(--text-muted)" }}>
+              Top campaign: <span className="font-mono" style={{ color: "var(--text-secondary)" }}>{topCampaign}</span>
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Ads Account Alerts ────────────────────────────────────────────────────────
+
+interface AdsDiagnostics {
+  status?: string;
+  data?: {
+    account_status?: string;
+    prepay_balance?: string;
+    conversion_tracking?: string;
+    alerts?: Array<{ type?: string; message?: string }>;
+  };
+}
+
+function AdsAccountAlerts({ diagnostics }: { diagnostics: AdsDiagnostics | null }) {
+  if (!diagnostics) return null;
+  const data = diagnostics.data ?? {};
+  const alerts: Array<{ type?: string; message?: string }> = Array.isArray(data.alerts) ? data.alerts : [];
+  const statuses = [
+    { label: "Account", value: data.account_status },
+    { label: "Prepay", value: data.prepay_balance },
+    { label: "Conversions", value: data.conversion_tracking },
+  ].filter((s) => s.value);
+
+  return (
+    <div
+      className="card animate-fade-in"
+      style={{ borderColor: "rgba(59,130,246,0.25)", background: "rgba(59,130,246,0.04)" }}
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span className="material-symbols-outlined text-base" style={{ color: "#3b82f6" }}>
+          campaign
+        </span>
+        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+          Ads Account Alerts
+        </h2>
+      </div>
+
+      {statuses.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {statuses.map((s) => (
+            <span
+              key={s.label}
+              className="text-xs px-2.5 py-1 rounded-full font-mono"
+              style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}
+            >
+              {s.label}: <strong style={{ color: "var(--text-primary)" }}>{String(s.value)}</strong>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {alerts.length === 0 ? (
+        <p className="text-xs flex items-center gap-1.5" style={{ color: "var(--accent-emerald)" }}>
+          <Icon name="check_circle" size="sm" /> No account alerts.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {alerts.map((alert, idx) => (
+            <li key={idx} className="text-xs flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
+              <span className="material-symbols-outlined text-sm mt-0.5" style={{ color: "var(--accent-blue)" }}>
+                info
+              </span>
+              <span>{alert.message ?? String(alert)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ── Tracking Installation ─────────────────────────────────────────────────────
+
+function TrackingInstallationCard({
+  buId,
+  ingestUrl,
+  snippetCode,
+  copied,
+  webhookCopied,
+  onCopyId,
+  onCopySnippet,
+}: {
+  buId: string;
+  ingestUrl: string;
+  snippetCode: string;
+  copied: boolean;
+  webhookCopied: boolean;
+  onCopyId: () => void;
+  onCopySnippet: () => void;
+}) {
+  return (
+    <div
+      className="card animate-fade-in h-full"
+      style={{ borderColor: "rgba(6,182,212,0.25)", background: "rgba(6,182,212,0.04)" }}
+    >
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-base" style={{ color: "#06b6d4" }}>
+          track_changes
+        </span>
+        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+          Lead Ingestion &amp; Tracking
+        </h2>
+      </div>
+
+      <div className="mb-4">
+        <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
+          Business Unit ID
+        </div>
+        <div
+          className="flex items-center gap-2 p-2.5 rounded-xl font-mono text-xs"
+          style={{ background: "var(--bg-elevated)" }}
+        >
+          <span className="flex-1 truncate" style={{ color: "var(--text-primary)" }}>{buId}</span>
+          <button
+            onClick={onCopyId}
+            className="btn btn-ghost"
+            style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}
+          >
+            <Icon name={copied ? "check" : "content_copy"} size="sm" />
+            {copied ? "Copied!" : "Copy ID"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
+          Ingest Endpoint
+        </div>
+        <div
+          className="p-2.5 rounded-xl font-mono text-xs break-all"
+          style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}
+        >
+          POST {ingestUrl}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
+          Tracking Snippet
+        </div>
+        <pre
+          className="text-xs rounded-xl p-3 overflow-x-auto"
+          style={{
+            background: "var(--bg-elevated)",
+            color: "var(--text-secondary)",
+            fontFamily: "'JetBrains Mono', monospace",
+            lineHeight: 1.6,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+          }}
+        >
+          {snippetCode}
+        </pre>
+        <button onClick={onCopySnippet} className="btn btn-ghost w-full mt-2" style={{ fontSize: "0.8rem" }}>
+          <Icon name={webhookCopied ? "check" : "content_copy"} size="sm" />
+          {webhookCopied ? "Snippet Copied!" : "📋 Copy Tracking Snippet"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Integrations & Access ─────────────────────────────────────────────────────
+
+function IntegrationsCard({ bu, ingestUrl }: { bu: BusinessUnit; ingestUrl: string }) {
+  return (
+    <div className="card animate-fade-in">
+      <div className="flex items-center gap-2 mb-4">
+        <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>
+          hub
+        </span>
+        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+          Integrations &amp; Access
+        </h2>
+      </div>
+
+      <ProfileRow icon="campaign" label="Google Ads Customer ID" value={bu.google_ads_customer_id} mono empty="Not connected" />
+      {bu.route_type === "ENTERPRISE" && (
+        <ProfileRow icon="link" label="CRM Webhook" value={bu.webhook_url} mono empty="Not configured" />
+      )}
+      <ProfileRow icon="webhook" label="Ingest Endpoint" value={ingestUrl} mono />
+      <ProfileRow
+        icon="notifications_active"
+        label="Lead Delivery"
+        value={bu.owner_whatsapp_number && bu.owner_email ? "WhatsApp + Email enabled" : "Not configured"}
+      />
+      <ProfileRow
+        icon="public"
+        label="Target Market"
+        value={`${bu.target_country ?? "2404"} / ${bu.target_language ?? "1000"}`}
+        mono
+      />
+    </div>
   );
 }
 
@@ -431,6 +796,7 @@ export default function BuCommandCenterPage() {
   const [org, setOrg] = useState<Organization | null>(null);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [leadsTotal, setLeadsTotal] = useState(0);
+  const [last7Count, setLast7Count] = useState(0);
   const [keywords, setKeywords] = useState<KeywordIdea[]>([]);
   const [keywordsLoading, setKeywordsLoading] = useState(false);
   const [keywordError, setKeywordError] = useState("");
@@ -451,11 +817,14 @@ export default function BuCommandCenterPage() {
   const [syncingGbp, setSyncingGbp] = useState(false);
   const [syncingGsc, setSyncingGsc] = useState(false);
   const [activeTab, setActiveTab] = useState<"audit" | "leads" | "keywords" | "settings">("audit");
-  const [latestAudit, setLatestAudit] = useState<any>(null);
+  const [latestAudit, setLatestAudit] = useState<
+    Awaited<ReturnType<typeof api.businessUnitAudit.get>> | null
+  >(null);
+  const [accountDiagnostics, setAccountDiagnostics] = useState<AdsDiagnostics | null>(null);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
-    if (!bu.primary_url && !bu.google_search_console_site) {
+    if (!bu.primary_url && !bu.website_url && !bu.google_search_console_site) {
       alert("Please configure a Primary Website or Google Search Console property first.");
       return;
     }
@@ -554,13 +923,17 @@ export default function BuCommandCenterPage() {
       const [buData, orgData, leadsData, userData] = await Promise.all([
         api.businessUnits.get(buId),
         api.organizations.get(orgId),
-        api.leads.list({ business_unit_id: buId, limit: 20 }),
+        api.leads.list({ business_unit_id: buId, limit: 50 }),
         api.auth.me().catch(() => null),
       ]);
       setBu(buData);
       setOrg(orgData);
       setLeads(leadsData.items);
       setLeadsTotal(leadsData.total);
+      const cutoff = Date.now() - 7 * 86400000;
+      setLast7Count(
+        leadsData.items.filter((l) => new Date(l.created_at).getTime() >= cutoff).length
+      );
       setUser(userData);
 
       // Fetch latest audit for KPI header
@@ -570,11 +943,15 @@ export default function BuCommandCenterPage() {
         }
       }).catch(() => {});
 
-      // Auto-fetch scraped metadata from client website if primary_url is configured
-      if (buData.primary_url) {
+      // Ads account diagnostics (role-gated endpoint; non-fatal)
+      api.marketing.getAccountDiagnostics().then(setAccountDiagnostics).catch(() => {});
+
+      // Auto-fetch scraped metadata from the audit website (falls back to primary_url)
+      const effectiveWebsite = buData.website_url || buData.primary_url;
+      if (effectiveWebsite) {
         setScrapingLoading(true);
         api.marketing
-          .scrapePreview(buData.primary_url)
+          .scrapePreview(effectiveWebsite)
           .then((preview) => {
             setScrapedData(preview);
             if (preview.success && preview.suggested_seeds && preview.suggested_seeds.length > 0) {
@@ -626,7 +1003,7 @@ export default function BuCommandCenterPage() {
         seeds,
         keywordLocations,
         keywordLanguages,
-        bu.primary_url ?? undefined,
+        bu.website_url || bu.primary_url || undefined,
         buId,
         undefined,
         negatives,
@@ -747,12 +1124,12 @@ export default function BuCommandCenterPage() {
               {[
                 { id: "audit", label: "Audit & Action Plan", icon: "fact_check" },
                 { id: "leads", label: "Leads & Tracking", icon: "bolt" },
-                { id: "keywords", label: "Keyword & Ad Research", icon: "search" },
+                { id: "keywords", label: "Keyword & Ad Performance", icon: "search" },
                 { id: "settings", label: "Digital Footprint & Settings", icon: "settings" },
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as "audit" | "leads" | "keywords" | "settings")}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all"
                   style={{
                     color: activeTab === tab.id ? "var(--accent-blue)" : "var(--text-muted)",
@@ -766,175 +1143,34 @@ export default function BuCommandCenterPage() {
               ))}
             </div>
 
-            {/* ── Main Grid ─────────────────────────────────────────────────── */}
-            {activeTab !== "audit" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {activeTab === "leads" && (
+              <div className="space-y-6 mt-6">
+                {/* ── Lead Performance Strip ─────────────────────────────── */}
+                <LeadPerformanceStrip leads={leads} last7Count={last7Count} />
 
-              {/* ── LEFT COLUMN: Profile + Ingestion ────────────────────────── */}
-              <div className="space-y-6 min-w-0">
-
-                {/* Business Profile Card */}
-                <div className="card animate-fade-in">
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>
-                      business
-                    </span>
-                    <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                      Business Profile
-                    </h2>
-                  </div>
-
-                  <ProfileRow icon="language" label="Primary Website" value={bu.primary_url} />
-                  <ProfileRow
-                    icon="search"
-                    label="Google Search Console"
-                    value={bu.google_search_console_site}
-                    mono
-                    empty="Not configured"
-                  />
-                  <ProfileRow
-                    icon="campaign"
-                    label="Google Ads Customer ID"
-                    value={bu.google_ads_customer_id}
-                    mono
-                    empty="Not configured"
-                  />
-                  <ProfileRow
-                    icon="share"
-                    label="Social Media Links"
-                    value={bu.social_media_links}
-                    empty="Not configured"
-                    action={
-                      canEdit && (
-                        <button
-                          type="button"
-                          onClick={handleDiscoverSocials}
-                          disabled={discoveringSocials}
-                          className="text-2xs px-2 py-0.5 rounded border flex items-center gap-1 transition-all"
-                          style={{
-                            borderColor: "var(--border)",
-                            background: "var(--bg-elevated)",
-                            color: discoveringSocials ? "var(--text-muted)" : "var(--accent-blue)",
-                            cursor: discoveringSocials ? "wait" : "pointer",
-                          }}
-                          title="Auto-discover official social profiles from verified website / GSC"
-                        >
-                          <span
-                            className={`material-symbols-outlined text-xs ${
-                              discoveringSocials ? "animate-spin" : ""
-                            }`}
-                          >
-                            {discoveringSocials ? "refresh" : "bolt"}
-                          </span>
-                          {discoveringSocials ? "Discovering…" : socialSuccessMessage || "Auto-Discover"}
-                        </button>
-                      )
-                    }
-                  />
-                  <ProfileRow icon="smartphone" label="Owner WhatsApp" value={bu.owner_whatsapp_number} mono />
-                  <ProfileRow icon="email" label="Owner Email" value={bu.owner_email} />
-
-                  {bu.route_type === "ENTERPRISE" && bu.webhook_url && (
-                    <ProfileRow icon="link" label="CRM Webhook URL" value={bu.webhook_url} mono />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* ── Tracking Installation (staff only) ───────────────── */}
+                  {canEdit && (
+                    <div className="min-w-0">
+                      <TrackingInstallationCard
+                        buId={buId}
+                        ingestUrl={ingestUrl}
+                        snippetCode={snippetCode}
+                        copied={copied}
+                        webhookCopied={webhookCopied}
+                        onCopyId={copyBuId}
+                        onCopySnippet={copyWebhook}
+                      />
+                    </div>
                   )}
 
-                  <div className="pt-3 mt-1">
-                    <div className="flex gap-3 text-xs" style={{ color: "var(--text-muted)" }}>
-                      <span>Target:</span>
-                      <span className="font-mono">{bu.target_country ?? "2404"}</span>
-                      <span>/</span>
-                      <span className="font-mono">{bu.target_language ?? "1000"}</span>
-                    </div>
+                  {/* ── Channel Attribution ──────────────────────────────── */}
+                  <div className={canEdit ? "lg:col-span-2 min-w-0" : "lg:col-span-3 min-w-0"}>
+                    <ChannelAttributionCard leads={leads} />
                   </div>
                 </div>
 
-                {/* Lead Ingestion & Tracking Widget */}
-                <div
-                  className="card animate-fade-in"
-                  style={{ borderColor: "rgba(6,182,212,0.25)", background: "rgba(6,182,212,0.04)" }}
-                >
-                  <div className="flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-base" style={{ color: "#06b6d4" }}>
-                      track_changes
-                    </span>
-                    <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
-                      Lead Ingestion &amp; Tracking
-                    </h2>
-                  </div>
-
-                  {/* BU ID Copy */}
-                  <div className="mb-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
-                      Business Unit ID
-                    </div>
-                    <div
-                      className="flex items-center gap-2 p-2.5 rounded-xl font-mono text-xs"
-                      style={{ background: "var(--bg-elevated)" }}
-                    >
-                      <span className="flex-1 truncate" style={{ color: "var(--text-primary)" }}>
-                        {buId}
-                      </span>
-                      <button
-                        id="copy-bu-id-btn"
-                        onClick={copyBuId}
-                        className="btn btn-ghost"
-                        style={{ padding: "0.2rem 0.6rem", fontSize: "0.75rem", whiteSpace: "nowrap" }}
-                      >
-                        <Icon name={copied ? "check" : "content_copy"} size="sm" />
-                        {copied ? "Copied!" : "Copy ID"}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Ingest URL */}
-                  <div className="mb-4">
-                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
-                      Ingest Endpoint
-                    </div>
-                    <div
-                      className="p-2.5 rounded-xl font-mono text-xs break-all"
-                      style={{ background: "var(--bg-elevated)", color: "var(--text-secondary)" }}
-                    >
-                      POST {ingestUrl}
-                    </div>
-                  </div>
-
-                  {/* Tracking Snippet */}
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wider mb-1.5" style={{ color: "var(--text-muted)" }}>
-                      Tracking Snippet
-                    </div>
-                    <pre
-                      className="text-xs rounded-xl p-3 overflow-x-auto"
-                      style={{
-                        background: "var(--bg-elevated)",
-                        color: "var(--text-secondary)",
-                        fontFamily: "'JetBrains Mono', monospace",
-                        lineHeight: 1.6,
-                        whiteSpace: "pre-wrap",
-                        wordBreak: "break-all",
-                      }}
-                    >
-                      {snippetCode}
-                    </pre>
-                    <button
-                      id="copy-snippet-btn"
-                      onClick={copyWebhook}
-                      className="btn btn-ghost w-full mt-2"
-                      style={{ fontSize: "0.8rem" }}
-                    >
-                      <Icon name={webhookCopied ? "check" : "content_copy"} size="sm" />
-                      {webhookCopied ? "Snippet Copied!" : "📋 Copy Tracking Snippet"}
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-
-              {/* ── RIGHT COLUMNS: Leads + Keywords ─────────────────────────── */}
-              <div className="lg:col-span-2 space-y-6 min-w-0">
-
-                {/* Recent Leads Feed */}
+                {/* ── Recent Leads (full width) ──────────────────────────── */}
                 <div className="card animate-slide-up" style={{ padding: 0, overflow: "hidden" }}>
                   <div
                     className="flex items-center justify-between px-5 py-4 border-b"
@@ -947,18 +1183,6 @@ export default function BuCommandCenterPage() {
                       <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
                         Recent Leads
                       </h2>
-                      <span
-                        style={{
-                          background: "rgba(6,182,212,0.14)",
-                          color: "#06b6d4",
-                          borderRadius: "9999px",
-                          padding: "0.1rem 0.55rem",
-                          fontSize: "0.7rem",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {leadsTotal} total
-                      </span>
                     </div>
                     <Link
                       href={`/leads?business_unit_id=${buId}`}
@@ -975,23 +1199,33 @@ export default function BuCommandCenterPage() {
                       <p className="mt-2 text-sm">No leads yet. Embed the tracking snippet to start capturing.</p>
                     </div>
                   ) : (
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Lead</th>
-                          <th>Channel</th>
-                          <th>Status</th>
-                          <th>Activity</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {leads.map((lead) => (
-                          <LeadRow key={lead.id} lead={lead} />
-                        ))}
-                      </tbody>
-                    </table>
+                    <div className="overflow-x-auto">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Lead</th>
+                            <th>Channel</th>
+                            <th>Attribution</th>
+                            <th>Status</th>
+                            <th>Activity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {leads.map((lead) => (
+                            <LeadRow key={lead.id} lead={lead} />
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   )}
                 </div>
+              </div>
+            )}
+
+            {activeTab === "keywords" && (
+              <div className="space-y-6 mt-6">
+                {/* ── Ads Account Alerts ─────────────────────────────────── */}
+                <AdsAccountAlerts diagnostics={accountDiagnostics} />
 
                 {/* BU-Scoped Keyword Tool */}
                 <div className="card animate-slide-up">
@@ -1004,19 +1238,19 @@ export default function BuCommandCenterPage() {
                         Keyword Planner
                       </h2>
                       <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                        Pre-filled with this BU's URL and Ads account
+                        Pre-filled with this BU&apos;s URL and Ads account
                       </p>
                     </div>
                   </div>
 
                   {/* Pre-filled context pills */}
                   <div className="flex flex-wrap gap-2 mb-4">
-                    {bu.primary_url && (
+                    {(bu.website_url || bu.primary_url) && (
                       <span
                         className="text-xs px-2.5 py-1 rounded-full font-mono"
                         style={{ background: "rgba(6,182,212,0.1)", color: "#06b6d4" }}
                       >
-                        🌐 {bu.primary_url}
+                        🌐 {bu.website_url || bu.primary_url}
                       </span>
                     )}
                     {bu.google_ads_customer_id && (
@@ -1039,7 +1273,7 @@ export default function BuCommandCenterPage() {
                     >
                       🌐 {keywordLanguages.length === 1 ? keywordLanguages[0] : `${keywordLanguages.length} Languages`}
                     </span>
-                    {!bu.primary_url && !bu.google_ads_customer_id && (
+                    {!bu.website_url && !bu.primary_url && !bu.google_ads_customer_id && (
                       <span className="text-xs italic" style={{ color: "var(--text-muted)" }}>
                         Edit the Business Profile to pre-fill URL and Ads account.
                       </span>
@@ -1047,7 +1281,7 @@ export default function BuCommandCenterPage() {
                   </div>
 
                   {/* Scraped Website Intelligence Card */}
-                  {bu.primary_url && (
+                  {(bu.website_url || bu.primary_url) && (
                     <div
                       className="p-3.5 mb-4 rounded-xl border text-xs animate-fade-in"
                       style={{
@@ -1117,7 +1351,7 @@ export default function BuCommandCenterPage() {
                           )}
                         </div>
                       ) : scrapingLoading ? (
-                        <p style={{ color: "var(--text-muted)" }}>Fetching title and metadata from {bu.primary_url}…</p>
+                        <p style={{ color: "var(--text-muted)" }}>Fetching title and metadata from {bu.website_url || bu.primary_url}…</p>
                       ) : (
                         <p style={{ color: "var(--text-muted)" }}>
                           Domain metadata will be fed into the Google Ads engine during keyword analysis.
@@ -1281,7 +1515,6 @@ export default function BuCommandCenterPage() {
                   )}
                 </div>
               </div>
-            </div>
             )}
 
             {activeTab === "audit" && (
@@ -1298,32 +1531,108 @@ export default function BuCommandCenterPage() {
             )}
 
             {activeTab === "settings" && (
-              <div className="space-y-6 mt-6">
-                {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
-                <BrandIntelligenceCard
-                  businessUnit={bu}
-                  onDiscoverSocials={handleDiscoverSocials}
-                  loadingDiscovery={discoveringSocials}
-                  onSyncGbp={handleSyncGBP}
-                  loadingSyncGbp={syncingGbp}
-                  onEditProfile={() => setShowEditModal(true)}
-                />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* ── LEFT: Business Profile (identity + audit profile) ───── */}
+                <div className="space-y-6 min-w-0">
+                  <div className="card animate-fade-in">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>
+                          business
+                        </span>
+                        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                          Business Profile
+                        </h2>
+                      </div>
+                      {canEdit && (
+                        <button
+                          onClick={() => setShowEditModal(true)}
+                          className="btn btn-ghost"
+                          style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                        >
+                          <Icon name="edit" size="sm" /> Edit Profile
+                        </button>
+                      )}
+                    </div>
 
-                {/* ── Google Search Console Card ─────────────────────────── */}
-                <GscMetricsCard
-                  buId={buId}
-                  siteUrl={bu.gsc_site_url || bu.google_search_console_site}
-                  gscConnected={Boolean(bu.gsc_connected)}
-                  gscMetrics={bu.gsc_metrics}
-                  onConnectGsc={handleConnectGsc}
-                  onSyncGsc={handleSyncGsc}
-                  onDisconnect={canEdit ? handleDisconnectGsc : undefined}
-                  loadingSync={syncingGsc}
-                  onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
-                />
+                    <ProfileRow icon="language" label="Primary Website" value={bu.primary_url} />
+                    <ProfileRow
+                      icon="travel_explore"
+                      label="Audit Website"
+                      value={bu.website_url}
+                      mono
+                      empty="Uses primary website"
+                    />
+                    <ProfileRow icon="location_city" label="Primary City" value={bu.city} empty="Not set" />
+                    <ProfileRow icon="category" label="Industry / Category" value={bu.industry} empty="Not set" />
+                    <ProfileRow icon="call" label="Business Phone" value={bu.phone} mono empty="Not set" />
+                    <ProfileRow icon="smartphone" label="Owner WhatsApp" value={bu.owner_whatsapp_number} mono />
+                    <ProfileRow icon="email" label="Owner Email" value={bu.owner_email} />
+                    <ProfileRow
+                      icon="share"
+                      label="Social Media Links"
+                      value={bu.social_media_links}
+                      empty="Not configured"
+                      action={
+                        canEdit && (
+                          <button
+                            type="button"
+                            onClick={handleDiscoverSocials}
+                            disabled={discoveringSocials}
+                            className="text-2xs px-2 py-0.5 rounded border flex items-center gap-1 transition-all"
+                            style={{
+                              borderColor: "var(--border)",
+                              background: "var(--bg-elevated)",
+                              color: discoveringSocials ? "var(--text-muted)" : "var(--accent-blue)",
+                              cursor: discoveringSocials ? "wait" : "pointer",
+                            }}
+                            title="Auto-discover official social profiles from verified website / GSC"
+                          >
+                            <span
+                              className={`material-symbols-outlined text-xs ${
+                                discoveringSocials ? "animate-spin" : ""
+                              }`}
+                            >
+                              {discoveringSocials ? "refresh" : "bolt"}
+                            </span>
+                            {discoveringSocials ? "Discovering…" : socialSuccessMessage || "Auto-Discover"}
+                          </button>
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+
+                {/* ── RIGHT: Footprint, GSC, Integrations ─────────────────── */}
+                <div className="space-y-6 min-w-0">
+                  {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
+                  <BrandIntelligenceCard
+                    businessUnit={bu}
+                    onDiscoverSocials={handleDiscoverSocials}
+                    loadingDiscovery={discoveringSocials}
+                    onSyncGbp={handleSyncGBP}
+                    loadingSyncGbp={syncingGbp}
+                    onEditProfile={() => setShowEditModal(true)}
+                  />
+
+                  {/* ── Google Search Console Card ─────────────────────────── */}
+                  <GscMetricsCard
+                    buId={buId}
+                    siteUrl={bu.gsc_site_url || bu.google_search_console_site}
+                    gscConnected={Boolean(bu.gsc_connected)}
+                    gscMetrics={bu.gsc_metrics}
+                    onConnectGsc={handleConnectGsc}
+                    onSyncGsc={handleSyncGsc}
+                    onDisconnect={canEdit ? handleDisconnectGsc : undefined}
+                    loadingSync={syncingGsc}
+                    onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
+                  />
+
+                  {/* ── Integrations & Access ──────────────────────────────── */}
+                  <IntegrationsCard bu={bu} ingestUrl={ingestUrl} />
+                </div>
               </div>
             )}
-
           </>
         )}
 
