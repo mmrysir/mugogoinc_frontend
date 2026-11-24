@@ -10,9 +10,10 @@ interface AuditCardProps {
   onEditProfile?: () => void;
   userRole?: string;
   leadsTotal?: number;
+  onAuditComplete?: (auditId: number) => void;
 }
 
-export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTotal }: AuditCardProps) {
+export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTotal, onAuditComplete }: AuditCardProps) {
   const buId = bu.id;
   const [history, setHistory] = useState<Array<{ id: number; created_at: string; overall_score: number; grade: string; score_delta: number | null }>>([]);
   const [latestAudit, setLatestAudit] = useState<any>(null);
@@ -52,6 +53,7 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
       setHistory(h);
       const detail = await api.businessUnitAudit.get(orgId, buId, result.id);
       setLatestAudit(detail);
+      onAuditComplete?.(result.id);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Audit failed. Please try again.");
     } finally {

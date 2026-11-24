@@ -1051,6 +1051,15 @@ export default function BuCommandCenterPage() {
     }
   }, [buId, orgId]);
 
+  // Targeted refresh of the latest audit used by the page-level KPI strip.
+  const refreshLatestAudit = useCallback(async () => {
+    const history = await api.businessUnitAudit.list(orgId, buId);
+    if (history.length > 0) {
+      const latest = await api.businessUnitAudit.get(orgId, buId, history[0].id);
+      setLatestAudit(latest);
+    }
+  }, [orgId, buId]);
+
   useEffect(() => {
     const t = setTimeout(fetchData, 0);
     return () => clearTimeout(t);
@@ -1623,6 +1632,7 @@ export default function BuCommandCenterPage() {
                   onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
                   userRole={user?.role}
                   leadsTotal={leadsTotal}
+                  onAuditComplete={refreshLatestAudit}
                 />
               </div>
             )}
