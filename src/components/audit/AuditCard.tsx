@@ -103,7 +103,7 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
             <Icon name="warning" size="sm" /> Complete your audit profile to run a diagnostic.
           </p>
           <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-            Add a website URL and primary city to enable the 6-pillar marketing health audit.
+            Add a website URL and primary city to enable the 7-pillar marketing health audit.
           </p>
           <button
             onClick={onEditProfile}
@@ -229,11 +229,12 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
       {/* Client View (default for clients) */}
       {latestAudit && !showAgentView && (
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
               { label: "Online Visibility", value: latestAudit.client_summary?.online_visibility ?? 0 },
               { label: "Reputation & Trust", value: latestAudit.client_summary?.reputation_and_trust ?? 0 },
               { label: "Lead Capture", value: latestAudit.client_summary?.lead_capture ?? 0 },
+              { label: "AI Discoverability", value: latestAudit.client_summary?.ai_discoverability ?? 0 },
             ].map((m) => (
               <div key={m.label} className="rounded-xl p-3 text-center" style={{ background: "var(--bg-elevated)" }}>
                 <div className="text-lg font-bold" style={{ color: scoreColor(m.value) }}>{Math.round(m.value)}</div>
@@ -270,15 +271,29 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
       {/* Agent Diagnostic View */}
       {latestAudit && showAgentView && latestAudit.agent_diagnostic && (
         <div className="space-y-4">
-          <div className="space-y-3">
-            {(latestAudit.agent_diagnostic.pillars || []).map((p: any) => (
-              <div key={p.name} className="rounded-xl p-4" style={{ background: "var(--bg-elevated)" }}>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+            {(latestAudit.agent_diagnostic.pillars || []).map((p: any) => {
+              const isAeo = p.name === "AEO & AI Discoverability";
+              return (
+              <div
+                key={p.name}
+                className="rounded-xl p-4"
+                style={{
+                  background: isAeo ? "rgba(6,182,212,0.06)" : "var(--bg-elevated)",
+                  border: isAeo ? "1px solid var(--border-accent)" : "1px solid transparent",
+                }}
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{p.name}</span>
+                  <span className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>{isAeo ? "7. " : ""}{p.name}</span>
                   <span className="text-xs font-semibold" style={{ color: "var(--text-secondary)" }}>
                     {p.score}/100 ({p.grade})
                   </span>
                 </div>
+                {isAeo && (
+                  <p className="text-[10px] mb-2" style={{ color: "var(--text-muted)" }}>
+                    Evaluates JSON-LD schema markup, entity structure, and readiness for AI answer engines (ChatGPT, Gemini, Perplexity).
+                  </p>
+                )}
                 <div className="h-1.5 rounded-full mb-2" style={{ background: "var(--bg-base)" }}>
                   <div className="h-full rounded-full" style={{ width: `${p.score}%`, background: "var(--gradient-accent)" }} />
                 </div>
@@ -302,7 +317,8 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
                   ))}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
           {/* Competitor table */}
           {latestAudit.agent_diagnostic.competitors?.length > 0 && (

@@ -144,24 +144,12 @@ export interface GscMetrics {
 // ── Website Audit / Lead Magnet Types ────────────────────────────────────────
 
 export interface AuditCheck {
-  name: string;
-  passed: boolean;
-  detail?: string | null;
-}
-
-export interface AuditPillar {
-  name: string;
-  score: number;
-  checks: AuditCheck[];
-}
-
-export interface AuditFinding {
-  pillar: string;
-  check: string;
-  passed: boolean;
-  status?: string;
-  details?: string | null;
+  title: string;
+  status: "strong" | "needs_work" | "priority";
+  evidence: string;
   impact?: string;
+  /** Contribution weight used by the weighted pillar average (default: 1). */
+  weight?: number;
 }
 
 export interface AuditPillar {
@@ -175,10 +163,12 @@ export interface AuditPillar {
   checks: AuditCheck[];
 }
 
-export interface AuditCheck {
-  title: string;
-  status: "strong" | "needs_work" | "priority";
-  evidence: string;
+export interface AuditFinding {
+  pillar: string;
+  check: string;
+  passed: boolean;
+  status?: string;
+  details?: string | null;
   impact?: string;
 }
 
@@ -223,6 +213,8 @@ export interface AuditRunResponse {
     competitors: AuditCompetitor[];
     gbp_profile: Record<string, any>;
     pillars: AuditPillar[];
+    aeo_score?: number;
+    aeo_checks?: AuditCheck[];
     action_plan: Array<{
       priority: string;
       pillar: string;
@@ -769,6 +761,7 @@ export const api = {
           online_visibility: number;
           reputation_and_trust: number;
           lead_capture: number;
+          ai_discoverability: number;
           overall_score: number;
           grade: string;
           score_delta: number | null;
@@ -785,6 +778,8 @@ export const api = {
           gbp_profile: Record<string, any>;
           findings: any[];
           scores: Record<string, any>;
+          aeo_score?: number;
+          aeo_checks?: any[];
         };
       }>(`/organizations/${orgId}/business-units/${buId}/audits/${auditId}`),
   },

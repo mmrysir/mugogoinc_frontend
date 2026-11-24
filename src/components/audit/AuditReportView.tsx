@@ -171,16 +171,30 @@ export default function AuditReportView({
         </div>
       )}
 
-      {/* 6-Pillar Detailed Breakdown */}
+      {/* 7-Pillar Detailed Breakdown */}
       <div className="space-y-4">
         {pillars.map((p: any) => (
-          <div key={p.name} className="rounded-2xl p-6 shadow-md-1" style={{ background: "var(--bg-card)" }}>
+          <div
+            key={p.name}
+            className="rounded-2xl p-6 shadow-md-1"
+            style={{
+              background: "var(--bg-card)",
+              border: p.name === "AEO & AI Discoverability" ? "1px solid var(--border-accent)" : "1px solid transparent",
+            }}
+          >
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>{p.name}</h3>
+              <h3 className="font-bold" style={{ color: "var(--text-primary)" }}>
+                {p.name === "AEO & AI Discoverability" ? "7. " : ""}{p.name}
+              </h3>
               <span className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
                 {p.score}/100 ({p.grade})
               </span>
             </div>
+            {p.name === "AEO & AI Discoverability" && (
+              <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                Evaluates JSON-LD schema markup, entity structure, and readiness for AI answer engines (ChatGPT, Gemini, Perplexity).
+              </p>
+            )}
             <div className="h-2 rounded-full mb-4" style={{ background: "var(--bg-elevated)" }}>
               <div
                 className="h-full rounded-full"
