@@ -620,6 +620,12 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(body),
       }),
+    /** Unified tenant-scoped profile save used by the Edit Business Profile modal. */
+    updateOrgProfile: (orgId: string, buId: string, body: Partial<BusinessUnit>) =>
+      request<BusinessUnit>(`/organizations/${orgId}/business-units/${buId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
     discoverSocials: (id: string) =>
       request<{
         status: string;

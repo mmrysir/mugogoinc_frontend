@@ -99,17 +99,88 @@ function ProfileRow({
   );
 }
 
+// ── Social link (de)serialization ─────────────────────────────────────────────
+
+const SOCIAL_PLATFORM_PATTERNS: Array<[string, RegExp]> = [
+  ["instagram", /instagram\.com/i],
+  ["facebook", /(facebook\.com|fb\.com)/i],
+  ["tiktok", /tiktok\.com/i],
+  ["twitter", /(twitter\.com|x\.com)/i],
+  ["linkedin", /linkedin\.com/i],
+  ["youtube", /(youtube\.com|youtu\.be)/i],
+  ["pinterest", /pinterest\.com/i],
+  ["threads", /threads\.net/i],
+  ["whatsapp", /(wa\.me|whatsapp\.com)/i],
+];
+
+function socialPlatformFor(url: string): string {
+  const match = SOCIAL_PLATFORM_PATTERNS.find(([, re]) => re.test(url));
+  return match ? match[0] : "";
+}
+
+/** Turn a stored JSON object (or legacy "platform: url" text) into clean URLs. */
+function socialLinksToText(raw: string | null | undefined): string {
+  if (!raw) return "";
+  const trimmed = raw.trim();
+  if (!trimmed) return "";
+
+  if (trimmed.startsWith("{")) {
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>;
+      if (parsed && typeof parsed === "object") {
+        return Object.values(parsed)
+          .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+          .join("\n");
+      }
+    } catch {
+      // fall through to line parsing
+    }
+  }
+
+  return trimmed
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = line.match(/https?:\/\/\S+/);
+      return (match ? match[0] : line).trim();
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
+/** Serialize one-URL-per-line input back into the JSON object the app expects. */
+function serializeSocialLinks(text: string): string | null {
+  const urls = text
+    .split(/\r?\n/)
+    .map((line) => {
+      const match = line.match(/https?:\/\/\S+/);
+      return (match ? match[0] : line).trim();
+    })
+    .filter(Boolean);
+
+  if (urls.length === 0) return null;
+
+  const result: Record<string, string> = {};
+  urls.forEach((url, index) => {
+    const platform = socialPlatformFor(url) || `social_${index + 1}`;
+    result[platform] = url;
+  });
+  return JSON.stringify(result);
+}
+
 // ── Edit Business Profile Modal ───────────────────────────────────────────────
 
 function EditProfileModal({
   bu,
+  orgId,
   onClose,
   onSaved,
 }: {
   bu: BusinessUnit;
+  orgId: string;
   onClose: () => void;
   onSaved: (updated: BusinessUnit) => void;
 }) {
+  const [name, setName] = useState(bu.name);
   const [primaryUrl, setPrimaryUrl] = useState(bu.primary_url ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(bu.website_url ?? bu.primary_url ?? "");
   const [city, setCity] = useState(bu.city ?? "");
@@ -118,13 +189,7 @@ function EditProfileModal({
   const [gscSite, setGscSite] = useState(bu.google_search_console_site ?? "");
   const [placeId, setPlaceId] = useState(bu.google_business_place_id ?? "");
   const [googleMapUrl, setGoogleMapUrl] = useState(bu.google_business_map_url ?? "");
-  const [googleRating, setGoogleRating] = useState(
-    bu.google_business_rating ? String(bu.google_business_rating) : ""
-  );
-  const [googleReviews, setGoogleReviews] = useState(
-    bu.google_business_review_count ? String(bu.google_business_review_count) : ""
-  );
-  const [socialLinks, setSocialLinks] = useState(bu.social_media_links ?? "");
+  const [socialLinks, setSocialLinks] = useState(() => socialLinksToText(bu.social_media_links));
   const [adsId, setAdsId] = useState(bu.google_ads_customer_id ?? "");
   const [waNumber, setWaNumber] = useState(bu.owner_whatsapp_number);
   const [ownerEmail, setOwnerEmail] = useState(bu.owner_email);
@@ -133,24 +198,28 @@ function EditProfileModal({
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (name.trim().length < 2) {
+      setError("Business name must be at least 2 characters.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      const updated = await api.businessUnits.updateProfile(bu.id, {
-        primary_url: primaryUrl || null,
-        website_url: websiteUrl || primaryUrl || null,
-        city: city || null,
-        industry: industry || null,
-        phone: phone || null,
-        google_search_console_site: gscSite || null,
-        google_business_place_id: placeId || null,
-        google_business_map_url: googleMapUrl || null,
-        google_business_rating: googleRating ? parseFloat(googleRating) : null,
-        google_business_review_count: googleReviews ? parseInt(googleReviews, 10) : null,
-        social_media_links: socialLinks || null,
-        google_ads_customer_id: adsId || null,
-        owner_whatsapp_number: waNumber,
-        owner_email: ownerEmail,
+      const updated = await api.businessUnits.updateOrgProfile(orgId, bu.id, {
+        name: name.trim(),
+        primary_url: primaryUrl.trim() || null,
+        website_url: websiteUrl.trim() || null,
+        city: city.trim() || null,
+        industry: industry.trim() || null,
+        phone: phone.trim() || null,
+        google_business_place_id: placeId.trim() || null,
+        google_business_map_url: googleMapUrl.trim() || null,
+        google_search_console_site: gscSite.trim() || null,
+        google_ads_customer_id: adsId.trim() || null,
+        owner_whatsapp_number: waNumber.trim(),
+        owner_email: ownerEmail.trim(),
+        social_media_links: serializeSocialLinks(socialLinks),
       });
       onSaved(updated);
       onClose();
@@ -162,12 +231,17 @@ function EditProfileModal({
 
   return (
     <div className="modal-backdrop" onClick={onClose}>
-      <div
-        className="modal-box"
-        style={{ maxWidth: 560 }}
+      <form
+        onSubmit={submit}
+        className="modal-box flex flex-col w-full max-h-[90vh] overflow-hidden"
+        style={{ padding: 0, maxWidth: 672 }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-6">
+        {/* Sticky header */}
+        <div
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
           <div>
             <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
               Edit Business Profile
@@ -176,25 +250,42 @@ function EditProfileModal({
               {bu.name}
             </p>
           </div>
-          <button onClick={onClose} className="btn btn-ghost" style={{ padding: "0.35rem 0.75rem" }}>
-            <Icon name="close" />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="btn btn-ghost"
+            style={{ padding: "0.35rem 0.75rem", fontSize: "1.25rem", lineHeight: 1 }}
+          >
+            ×
           </button>
         </div>
 
-        <form onSubmit={submit} className="space-y-4">
-          {/* Website */}
-          <div>
-            <label className="form-label">Primary Website URL</label>
-            <input
-              className="form-input"
-              value={primaryUrl}
-              onChange={(e) => setPrimaryUrl(e.target.value)}
-              placeholder="https://example.com"
-            />
+        {/* Scrollable body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Business Name</label>
+              <input
+                className="form-input"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                minLength={2}
+              />
+            </div>
+            <div>
+              <label className="form-label">Primary Website URL</label>
+              <input
+                className="form-input"
+                value={primaryUrl}
+                onChange={(e) => setPrimaryUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
           </div>
 
-          {/* Audit Profile Fields */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Audit Website URL (optional)</label>
               <input
@@ -217,7 +308,8 @@ function EditProfileModal({
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="form-label">Industry / Category</label>
               <input
@@ -238,75 +330,78 @@ function EditProfileModal({
             </div>
           </div>
 
-          {/* GSC */}
-          <div>
-            <label className="form-label">Google Search Console Property</label>
-            <input
-              className="form-input"
-              value={gscSite}
-              onChange={(e) => setGscSite(e.target.value)}
-              placeholder="https://example.com  or  sc-domain:example.com"
-            />
-            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-              Must be a verified property in your GSC account.
-            </p>
-          </div>
-
-          {/* Google Business Place ID */}
-          <div>
-            <label className="form-label">Google Places / Place ID</label>
-            <input
-              className="form-input"
-              value={placeId}
-              onChange={(e) => setPlaceId(e.target.value)}
-              placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
-            />
-            <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-              Used to query live reviews and ratings via Google Places API.
-            </p>
-          </div>
-
-          {/* Google Business Profile / Maps URL */}
-          <div>
-            <label className="form-label">Google Business Profile (Maps URL)</label>
-            <input
-              className="form-input"
-              value={googleMapUrl}
-              onChange={(e) => setGoogleMapUrl(e.target.value)}
-              placeholder="https://maps.google.com/?cid=... or https://goo.gl/maps/..."
-            />
-          </div>
-
-          {/* Storefront Rating & Reviews */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="form-label">Storefront Rating (⭐ 1.0 - 5.0)</label>
+              <label className="form-label">Google Places / Place ID</label>
               <input
-                type="number"
-                step="0.1"
-                min="1.0"
-                max="5.0"
-                className="form-input"
-                value={googleRating}
-                onChange={(e) => setGoogleRating(e.target.value)}
-                placeholder="4.8"
+                className="form-input font-mono"
+                value={placeId}
+                onChange={(e) => setPlaceId(e.target.value)}
+                placeholder="e.g. ChIJN1t_tDeuEmsRUsoyG83frY4"
               />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                Used to query live reviews and ratings via Google Places API.
+              </p>
             </div>
             <div>
-              <label className="form-label">Review Count</label>
+              <label className="form-label">Google Business Profile (Maps URL)</label>
               <input
-                type="number"
-                step="1"
-                min="0"
                 className="form-input"
-                value={googleReviews}
-                onChange={(e) => setGoogleReviews(e.target.value)}
-                placeholder="128"
+                value={googleMapUrl}
+                onChange={(e) => setGoogleMapUrl(e.target.value)}
+                placeholder="https://maps.google.com/?cid=..."
               />
             </div>
           </div>
 
-          {/* Social */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Google Search Console Property</label>
+              <input
+                className="form-input"
+                value={gscSite}
+                onChange={(e) => setGscSite(e.target.value)}
+                placeholder="https://example.com or sc-domain:example.com"
+              />
+              <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
+                Must be a verified property in your GSC account.
+              </p>
+            </div>
+            <div>
+              <label className="form-label">Google Ads Customer ID</label>
+              <input
+                className="form-input font-mono"
+                value={adsId}
+                onChange={(e) => setAdsId(e.target.value)}
+                placeholder="123-456-7890"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Owner WhatsApp Number (E.164)</label>
+              <input
+                className="form-input font-mono"
+                value={waNumber}
+                onChange={(e) => setWaNumber(e.target.value)}
+                placeholder="+254712345678"
+                required
+              />
+            </div>
+            <div>
+              <label className="form-label">Owner Email</label>
+              <input
+                className="form-input"
+                type="email"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+                placeholder="owner@business.com"
+                required
+              />
+            </div>
+          </div>
+
           <div>
             <label className="form-label">Social Media Links</label>
             <textarea
@@ -314,62 +409,46 @@ function EditProfileModal({
               rows={3}
               value={socialLinks}
               onChange={(e) => setSocialLinks(e.target.value)}
-              placeholder={`instagram: https://instagram.com/brand\nfacebook: https://facebook.com/brand`}
+              placeholder={"https://instagram.com/brand\nhttps://facebook.com/brand"}
               style={{ resize: "vertical", fontFamily: "inherit" }}
             />
             <p className="text-xs mt-1" style={{ color: "var(--text-muted)" }}>
-              Enter one profile per line. These are stored as-is for reference.
+              One URL per line. Saved as structured JSON automatically.
             </p>
           </div>
 
-          {/* Ads */}
-          <div>
-            <label className="form-label">Google Ads Customer ID</label>
-            <input
-              className="form-input font-mono"
-              value={adsId}
-              onChange={(e) => setAdsId(e.target.value)}
-              placeholder="123-456-7890"
-            />
+          <div
+            className="rounded-xl p-3 text-xs flex items-start gap-2"
+            style={{ background: "var(--bg-elevated)", color: "var(--text-muted)" }}
+          >
+            <Icon name="info" size="sm" />
+            <span>
+              Storefront rating and review count are read-only — they sync automatically from the latest Google Places audit match.
+            </span>
           </div>
+        </div>
 
-          {/* WhatsApp */}
-          <div>
-            <label className="form-label">Owner WhatsApp Number (E.164)</label>
-            <input
-              className="form-input font-mono"
-              value={waNumber}
-              onChange={(e) => setWaNumber(e.target.value)}
-              placeholder="+254712345678"
-              required
-            />
-          </div>
-
-          {/* Email */}
-          <div>
-            <label className="form-label">Owner Email</label>
-            <input
-              className="form-input"
-              type="email"
-              value={ownerEmail}
-              onChange={(e) => setOwnerEmail(e.target.value)}
-              placeholder="owner@business.com"
-              required
-            />
-          </div>
-
-          {error && <p className="text-sm" style={{ color: "#fb7185" }}>{error}</p>}
-
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="btn btn-ghost flex-1">
-              Cancel
-            </button>
-            <button type="submit" disabled={loading} className="btn btn-primary flex-1">
-              {loading ? "Saving…" : "Save Profile"}
-            </button>
-          </div>
-        </form>
-      </div>
+        {/* Sticky footer */}
+        <div
+          className="shrink-0 flex items-center gap-3 px-6 py-4 border-t"
+          style={{ borderColor: "var(--border)", background: "var(--bg-elevated)" }}
+        >
+          {error && (
+            <p className="text-sm mr-auto" style={{ color: "#fb7185" }}>
+              {error}
+            </p>
+          )}
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            Cancel
+          </button>
+          <button type="submit" disabled={loading} className="btn btn-primary flex items-center gap-2">
+            {loading && (
+              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+            )}
+            {loading ? "Saving..." : "Save Changes"}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
@@ -824,6 +903,7 @@ export default function BuCommandCenterPage() {
     Awaited<ReturnType<typeof api.businessUnitAudit.get>> | null
   >(null);
   const [accountDiagnostics, setAccountDiagnostics] = useState<AdsDiagnostics | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -975,6 +1055,12 @@ export default function BuCommandCenterPage() {
     const t = setTimeout(fetchData, 0);
     return () => clearTimeout(t);
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3200);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const copyBuId = () => {
     navigator.clipboard.writeText(buId);
@@ -1651,12 +1737,30 @@ export default function BuCommandCenterPage() {
         {showEditModal && bu && (
           <EditProfileModal
             bu={bu}
+            orgId={orgId}
             onClose={() => setShowEditModal(false)}
             onSaved={(updated) => {
               setBu(updated);
               setShowEditModal(false);
+              setToast("Business profile saved");
+              fetchData().catch(() => {});
             }}
           />
+        )}
+
+        {toast && (
+          <div
+            role="status"
+            className="fixed bottom-6 right-6 z-[110] flex items-center gap-2 px-4 py-3 rounded-xl shadow-lg animate-slide-up"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--accent-emerald)" }}
+          >
+            <span style={{ color: "var(--accent-emerald)", display: "flex" }}>
+              <Icon name="check_circle" size="sm" />
+            </span>
+            <span className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+              {toast}
+            </span>
+          </div>
         )}
       </main>
     </div>
