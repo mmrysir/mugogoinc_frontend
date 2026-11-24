@@ -111,6 +111,10 @@ function EditProfileModal({
   onSaved: (updated: BusinessUnit) => void;
 }) {
   const [primaryUrl, setPrimaryUrl] = useState(bu.primary_url ?? "");
+  const [websiteUrl, setWebsiteUrl] = useState(bu.website_url ?? "");
+  const [city, setCity] = useState(bu.city ?? "");
+  const [industry, setIndustry] = useState(bu.industry ?? "");
+  const [phone, setPhone] = useState(bu.phone ?? "");
   const [gscSite, setGscSite] = useState(bu.google_search_console_site ?? "");
   const [placeId, setPlaceId] = useState(bu.google_business_place_id ?? "");
   const [googleMapUrl, setGoogleMapUrl] = useState(bu.google_business_map_url ?? "");
@@ -134,6 +138,10 @@ function EditProfileModal({
     try {
       const updated = await api.businessUnits.updateProfile(bu.id, {
         primary_url: primaryUrl || null,
+        website_url: websiteUrl || null,
+        city: city || null,
+        industry: industry || null,
+        phone: phone || null,
         google_search_console_site: gscSite || null,
         google_business_place_id: placeId || null,
         google_business_map_url: googleMapUrl || null,
@@ -183,6 +191,48 @@ function EditProfileModal({
               onChange={(e) => setPrimaryUrl(e.target.value)}
               placeholder="https://example.com"
             />
+          </div>
+
+          {/* Audit Profile Fields */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Audit Website URL</label>
+              <input
+                className="form-input"
+                value={websiteUrl}
+                onChange={(e) => setWebsiteUrl(e.target.value)}
+                placeholder="https://example.com"
+              />
+            </div>
+            <div>
+              <label className="form-label">Primary City</label>
+              <input
+                className="form-input"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                placeholder="e.g. Zanzibar, Nairobi"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="form-label">Industry / Category</label>
+              <input
+                className="form-input"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                placeholder="e.g. Wellness, Spas & Medspas"
+              />
+            </div>
+            <div>
+              <label className="form-label">Business Phone</label>
+              <input
+                className="form-input"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+255776583434"
+              />
+            </div>
           </div>
 
           {/* GSC */}
