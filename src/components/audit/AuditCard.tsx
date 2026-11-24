@@ -184,6 +184,17 @@ export default function AuditCard({ orgId, bu, onEditProfile, userRole, leadsTot
                   {latestAudit.client_summary.score_delta} pts since last audit
                 </div>
               )}
+              {latestAudit.client_summary?.baseline_delta != null && (
+                <div
+                  className="text-xs font-semibold"
+                  style={{
+                    color: latestAudit.client_summary.baseline_delta >= 0 ? "var(--accent-emerald)" : "var(--accent-amber)",
+                  }}
+                >
+                  {latestAudit.client_summary.baseline_delta >= 0 ? "+" : ""}
+                  {latestAudit.client_summary.baseline_delta} pts vs baseline
+                </div>
+              )}
               <div className="text-xs" style={{ color: "var(--text-muted)" }}>
                 {history.length} audit{history.length !== 1 ? "s" : ""} run
               </div>

@@ -765,6 +765,8 @@ export const api = {
           overall_score: number;
           grade: string;
           score_delta: number | null;
+          baseline_score?: number | null;
+          baseline_delta?: number | null;
           top_priorities: Array<{ title: string; evidence: string; impact: string; priority: string }>;
           competitor_rating: number | null;
           competitor_reviews: number | null;
