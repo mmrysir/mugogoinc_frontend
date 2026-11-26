@@ -662,6 +662,36 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    previewSocial: (buId: string, body: { platform: string; url: string }) =>
+      request<{
+        platform: string;
+        url: string;
+        active: boolean;
+        followers: number | null;
+        description_snippet: string | null;
+        source: string | null;
+        status_code: number | null;
+        error: string | null;
+      }>(`/business-units/${buId}/social/preview`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    confirmSocial: (buId: string, body: {
+      platform: string;
+      url: string;
+      handle?: string;
+      followers?: number;
+      posts_count?: number;
+    }) =>
+      request<{
+        status: string;
+        platform: string;
+        url: string;
+        verified: boolean;
+      }>(`/business-units/${buId}/social/confirm`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     syncGbp: (id: string) =>
       request<{
         status: string;
