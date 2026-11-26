@@ -2488,7 +2488,7 @@ export default function BuCommandCenterPage() {
                           <option value={10}>Top 10</option>
                         </select>
                       </div>
-                      <button type="button" onClick={handleRefreshCompetitors} disabled={runningCompetitors} className="btn btn-primary flex items-center gap-2">
+                      <button type="button" onClick={() => { console.log("refresh clicked, bu=", bu?.id); handleRefreshCompetitors(); }} disabled={runningCompetitors} className="btn btn-primary flex items-center gap-2">
                         {runningCompetitors && <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>}
                         {runningCompetitors ? "Analyzing..." : "Re-Scope & Analyze Market"}
                       </button>
