@@ -471,6 +471,243 @@ function EditProfileModal({
   );
 }
 
+// ── GBP Verification Modal ────────────────────────────────────────────────────
+
+function GbpVerifyModal({
+  bu,
+  onClose,
+  onVerified,
+}: {
+  bu: BusinessUnit;
+  onClose: () => void;
+  onVerified: (updated: BusinessUnit) => void;
+}) {
+  const [placeId, setPlaceId] = useState(bu.google_business_place_id ?? "");
+  const [mapsUrl, setMapsUrl] = useState(bu.google_business_map_url ?? "");
+  const [preview, setPreview] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handlePreview = async () => {
+    if (!placeId.trim() && !mapsUrl.trim()) {
+      setError("Provide a Place ID or Maps URL to preview.");
+      return;
+    }
+    setPreviewLoading(true);
+    setError("");
+    setPreview(null);
+    try {
+      const data = await api.businessUnits.previewGbp(bu.id, {
+        place_id: placeId.trim() || undefined,
+        maps_url: mapsUrl.trim() || undefined,
+      });
+      setPreview(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Preview failed.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleConfirm = async (data: {
+    place_id: string;
+    name?: string | null;
+    rating?: number | null;
+    review_count?: number | null;
+    map_url?: string | null;
+  }) => {
+    setConfirmLoading(true);
+    setError("");
+    try {
+      const updated = await api.businessUnits.confirmGbp(bu.id, {
+        place_id: data.place_id,
+        maps_url: data.map_url || mapsUrl.trim() || undefined,
+        name: data.name || undefined,
+        rating: data.rating ?? undefined,
+        review_count: data.review_count ?? undefined,
+      });
+      // Refresh the BU to get updated digital_footprint_metrics
+      const fresh = await api.businessUnits.get(bu.id);
+      onVerified(fresh);
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Verification failed.");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  const hasExisting = !!bu.google_business_place_id;
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal-box flex flex-col w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        style={{ padding: 0, maxWidth: 672 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+              Verify Google Business Profile
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {bu.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="btn btn-ghost"
+            style={{ padding: "0.35rem 0.75rem", fontSize: "1.25rem", lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
+          {/* Quick confirm using existing place_id */}
+          {hasExisting && !preview && (
+            <div
+              className="rounded-xl p-4 border"
+              style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
+            >
+              <p className="text-sm font-medium mb-2" style={{ color: "var(--text-primary)" }}>
+                Current profile:{" "}
+                <span className="font-mono text-xs" style={{ color: "var(--text-muted)" }}>
+                  {bu.google_business_place_id}
+                </span>
+              </p>
+              <p className="text-xs mb-3" style={{ color: "var(--text-muted)" }}>
+                {bu.google_business_rating
+                  ? `★ ${bu.google_business_rating} · ${bu.google_business_review_count ?? 0} reviews`
+                  : "No rating synced yet"}
+              </p>
+              <button
+                type="button"
+                disabled={confirmLoading}
+                onClick={() =>
+                  handleConfirm({
+                    place_id: bu.google_business_place_id!,
+                    name: bu.name,
+                    rating: bu.google_business_rating ?? null,
+                    review_count: bu.google_business_review_count ?? null,
+                    map_url: bu.google_business_map_url ?? null,
+                  })
+                }
+                className="btn btn-primary flex items-center gap-2"
+              >
+                {confirmLoading && (
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                )}
+                Yes, this is correct — Lock it
+              </button>
+            </div>
+          )}
+
+          {/* Override / fix */}
+          <div className="space-y-4">
+            <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--text-muted)" }}>
+              Or enter a corrected Place ID / Maps URL
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Google Place ID</label>
+                <input
+                  className="form-input font-mono"
+                  value={placeId}
+                  onChange={(e) => setPlaceId(e.target.value)}
+                  placeholder="ChIJ..."
+                />
+              </div>
+              <div>
+                <label className="form-label">Google Maps URL</label>
+                <input
+                  className="form-input"
+                  value={mapsUrl}
+                  onChange={(e) => setMapsUrl(e.target.value)}
+                  placeholder="https://www.google.com/maps/place/..."
+                />
+              </div>
+            </div>
+
+            {error && <p className="text-sm" style={{ color: "#fb7185" }}>{error}</p>}
+
+            <button
+              type="button"
+              onClick={handlePreview}
+              disabled={previewLoading}
+              className="btn btn-ghost flex items-center gap-2"
+            >
+              {previewLoading && (
+                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+              )}
+              Preview
+            </button>
+
+            {/* Preview result */}
+            {preview && (
+              <div
+                className="rounded-xl p-4 border space-y-3"
+                style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
+              >
+                <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                  Found:{" "}
+                  <strong>{preview.name ?? "Unknown"}</strong>{" "}
+                  {preview.rating != null && (
+                    <span style={{ color: "var(--text-muted)" }}>
+                      (★ {preview.rating} · {preview.review_count ?? 0} reviews)
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  Is this the business you're verifying?
+                </p>
+                <button
+                  type="button"
+                  disabled={confirmLoading}
+                  onClick={() =>
+                    handleConfirm({
+                      place_id: preview.place_id,
+                      name: preview.name,
+                      rating: preview.rating,
+                      review_count: preview.review_count,
+                      map_url: preview.map_url,
+                    })
+                  }
+                  className="btn btn-primary flex items-center gap-2"
+                >
+                  {confirmLoading && (
+                    <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                  )}
+                  Confirm &amp; Lock
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div
+          className="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t"
+          style={{ borderColor: "var(--border)", background: "var(--bg-elevated)" }}
+        >
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Lead row ─────────────────────────────────────────────────────────────────
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -885,6 +1122,22 @@ function CompetitionDot({ level }: { level: string }) {
   );
 }
 
+// ── GBP verification helpers ──────────────────────────────────────────────────
+
+function isGbpVerified(bu: BusinessUnit | null): boolean {
+  if (!bu) return false;
+  const m = bu.digital_footprint_metrics;
+  let footprint: any = m;
+  if (typeof m === "string") {
+    try {
+      footprint = JSON.parse(m);
+    } catch {
+      footprint = {};
+    }
+  }
+  return !!(footprint && footprint.gbp && footprint.gbp.verified);
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function BuCommandCenterPage() {
@@ -910,6 +1163,7 @@ export default function BuCommandCenterPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [webhookCopied, setWebhookCopied] = useState(false);
   const [discoveringSocials, setDiscoveringSocials] = useState(false);
@@ -1730,6 +1984,45 @@ export default function BuCommandCenterPage() {
 
                 {/* ── RIGHT: Footprint, GSC, Integrations ─────────────────── */}
                 <div className="space-y-6 min-w-0">
+                  {/* ── GBP Verification Status ────────────────────────────── */}
+                  {canEdit && (
+                    <div
+                      className="card animate-fade-in flex items-center justify-between gap-3"
+                      style={{
+                        borderColor: isGbpVerified(bu) ? "rgba(34,197,94,0.3)" : "rgba(245,158,11,0.3)",
+                        background: isGbpVerified(bu) ? "rgba(34,197,94,0.06)" : "rgba(245,158,11,0.06)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="material-symbols-outlined text-base"
+                          style={{ color: isGbpVerified(bu) ? "#22c55e" : "#f59e0b" }}
+                        >
+                          {isGbpVerified(bu) ? "verified" : "pending"}
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                            {isGbpVerified(bu) ? "GBP Verified" : "GBP Unverified"}
+                          </p>
+                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            {isGbpVerified(bu)
+                              ? "Locked — future audits use this Place ID exclusively."
+                              : "Verify the Google Business Profile to lock it."}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowVerifyModal(true)}
+                        className="btn btn-ghost"
+                        style={{ padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
+                      >
+                        <Icon name={isGbpVerified(bu) ? "edit" : "verified"} size="sm" />
+                        {isGbpVerified(bu) ? "Re-verify" : "Verify"}
+                      </button>
+                    </div>
+                  )}
+
                   {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
                   <BrandIntelligenceCard
                     businessUnit={bu}
@@ -1771,6 +2064,19 @@ export default function BuCommandCenterPage() {
               setBu(updated);
               setShowEditModal(false);
               setToast("Business profile saved");
+              fetchData().catch(() => {});
+            }}
+          />
+        )}
+
+        {showVerifyModal && bu && (
+          <GbpVerifyModal
+            bu={bu}
+            onClose={() => setShowVerifyModal(false)}
+            onVerified={(updated) => {
+              setBu(updated);
+              setShowVerifyModal(false);
+              setToast("Google Business Profile verified and locked.");
               fetchData().catch(() => {});
             }}
           />

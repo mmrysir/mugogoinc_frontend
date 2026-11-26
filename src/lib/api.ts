@@ -631,6 +631,37 @@ export const api = {
       }>(`/business-units/${id}/discover-socials`, {
         method: "POST",
       }),
+    previewGbp: (buId: string, body: { place_id?: string; maps_url?: string }) =>
+      request<{
+        place_id: string;
+        name: string | null;
+        rating: number | null;
+        review_count: number | null;
+        business_status: string | null;
+        map_url: string | null;
+      }>(`/business-units/${buId}/gbp/preview`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+    confirmGbp: (buId: string, body: {
+      place_id: string;
+      maps_url?: string;
+      name?: string;
+      rating?: number;
+      review_count?: number;
+    }) =>
+      request<{
+        status: string;
+        place_id: string;
+        name: string | null;
+        rating: number | null;
+        review_count: number | null;
+        map_url: string | null;
+        verified: boolean;
+      }>(`/business-units/${buId}/gbp/confirm`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     syncGbp: (id: string) =>
       request<{
         status: string;
