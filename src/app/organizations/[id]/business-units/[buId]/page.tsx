@@ -1124,6 +1124,33 @@ function CompetitionDot({ level }: { level: string }) {
 
 // ── GBP verification helpers ──────────────────────────────────────────────────
 
+function parseFootprintScores(bu: BusinessUnit | null): {
+  overall: number;
+  local: number;
+  website: number;
+  social: number;
+  auditedAt: string | null;
+} | null {
+  if (!bu) return null;
+  const m = bu.digital_footprint_metrics;
+  let fp: any = m;
+  if (typeof m === "string") {
+    try {
+      fp = JSON.parse(m);
+    } catch {
+      fp = {};
+    }
+  }
+  if (!fp || !fp.scores) return null;
+  return {
+    overall: fp.scores.overall_health_score ?? 0,
+    local: fp.scores.local_authority_score ?? 0,
+    website: fp.scores.website_health_score ?? 0,
+    social: fp.scores.social_presence_score ?? 0,
+    auditedAt: fp.audited_at ?? null,
+  };
+}
+
 function isGbpVerified(bu: BusinessUnit | null): boolean {
   if (!bu) return false;
   const m = bu.digital_footprint_metrics;
@@ -1176,6 +1203,7 @@ export default function BuCommandCenterPage() {
   >(null);
   const [accountDiagnostics, setAccountDiagnostics] = useState<AdsDiagnostics | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [runningFootprint, setRunningFootprint] = useState(false);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -1200,6 +1228,20 @@ export default function BuCommandCenterPage() {
       alert(err instanceof Error ? err.message : "Social discovery failed");
     } finally {
       setDiscoveringSocials(false);
+    }
+  };
+
+  const handleRunFootprintAudit = async () => {
+    if (!bu) return;
+    setRunningFootprint(true);
+    try {
+      await api.businessUnitAudit.runFootprintAudit(orgId, buId);
+      await fetchData();
+      setToast("Digital footprint audit complete.");
+    } catch (err: unknown) {
+      setToast(err instanceof Error ? err.message : "Footprint audit failed.");
+    } finally {
+      setRunningFootprint(false);
     }
   };
 
@@ -2045,6 +2087,66 @@ export default function BuCommandCenterPage() {
                     loadingSync={syncingGsc}
                     onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
                   />
+
+                  {/* ── Digital Footprint Scores ───────────────────────────── */}
+                  {(() => {
+                    const scores = parseFootprintScores(bu);
+                    return (
+                      <div className="card animate-fade-in">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-base" style={{ color: "var(--accent-blue)" }}>
+                              analytics
+                            </span>
+                            <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>
+                              Digital Footprint Scores
+                            </h2>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleRunFootprintAudit}
+                            disabled={runningFootprint}
+                            className="btn btn-primary"
+                            style={{ padding: "0.3rem 0.75rem", fontSize: "0.8rem" }}
+                          >
+                            {runningFootprint ? "Running..." : "Run Audit"}
+                          </button>
+                        </div>
+
+                        {scores ? (
+                          <div className="space-y-3">
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores.overall}</p>
+                                <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Overall Health</p>
+                              </div>
+                              <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores.local}</p>
+                                <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Local Authority</p>
+                              </div>
+                              <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores.website}</p>
+                                <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Website Health</p>
+                              </div>
+                              <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}>
+                                <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{scores.social}</p>
+                                <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Social Presence</p>
+                              </div>
+                            </div>
+                            {scores.auditedAt && (
+                              <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+                                Last audited: {new Date(scores.auditedAt).toLocaleString()}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            No footprint audit yet. Click "Run Audit" to generate scores.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
 
                   {/* ── Integrations & Access ──────────────────────────────── */}
                   <IntegrationsCard bu={bu} ingestUrl={ingestUrl} />
