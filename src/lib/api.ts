@@ -692,6 +692,16 @@ export const api = {
         method: "POST",
         body: JSON.stringify(body),
       }),
+    refreshCompetitors: (buId: string, body: {
+      search_radius_meters?: number;
+      competitor_limit?: number;
+      latitude?: number;
+      longitude?: number;
+    }) =>
+      request<any>(`/business-units/${buId}/competitors/refresh`, {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
     syncGbp: (id: string) =>
       request<{
         status: string;

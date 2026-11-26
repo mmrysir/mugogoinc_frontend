@@ -1388,13 +1388,16 @@ export default function BuCommandCenterPage() {
   const [socialSuccessMessage, setSocialSuccessMessage] = useState("");
   const [syncingGbp, setSyncingGbp] = useState(false);
   const [syncingGsc, setSyncingGsc] = useState(false);
-  const [activeTab, setActiveTab] = useState<"audit" | "leads" | "keywords" | "settings">("audit");
+  const [activeTab, setActiveTab] = useState<"audit" | "leads" | "keywords" | "settings" | "competitors">("audit");
   const [latestAudit, setLatestAudit] = useState<
     Awaited<ReturnType<typeof api.businessUnitAudit.get>> | null
   >(null);
   const [accountDiagnostics, setAccountDiagnostics] = useState<AdsDiagnostics | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [runningFootprint, setRunningFootprint] = useState(false);
+  const [runningCompetitors, setRunningCompetitors] = useState(false);
+  const [scopeRadius, setScopeRadius] = useState(10000);
+  const [scopeLimit, setScopeLimit] = useState(5);
 
   const handleDiscoverSocials = async () => {
     if (!bu) return;
@@ -1419,6 +1422,23 @@ export default function BuCommandCenterPage() {
       alert(err instanceof Error ? err.message : "Social discovery failed");
     } finally {
       setDiscoveringSocials(false);
+    }
+  };
+
+  const handleRefreshCompetitors = async () => {
+    if (!bu) return;
+    setRunningCompetitors(true);
+    try {
+      await api.businessUnits.refreshCompetitors(bu.id, {
+        search_radius_meters: scopeRadius,
+        competitor_limit: scopeLimit,
+      });
+      await fetchData();
+      setToast("Competitive intelligence refreshed.");
+    } catch (err: unknown) {
+      setToast(err instanceof Error ? err.message : "Competitor refresh failed.");
+    } finally {
+      setRunningCompetitors(false);
     }
   };
 
@@ -1737,10 +1757,11 @@ export default function BuCommandCenterPage() {
                 { id: "leads", label: "Leads & Tracking", icon: "bolt" },
                 { id: "keywords", label: "Keyword & Ad Performance", icon: "search" },
                 { id: "settings", label: "Digital Footprint & Settings", icon: "settings" },
+                { id: "competitors", label: "Competitive Intelligence", icon: "groups" },
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as "audit" | "leads" | "keywords" | "settings")}
+                  onClick={() => setActiveTab(tab.id as "audit" | "leads" | "keywords" | "settings" | "competitors")}
                   className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold transition-all"
                   style={{
                     color: activeTab === tab.id ? "var(--accent-blue)" : "var(--text-muted)",
@@ -2377,6 +2398,154 @@ export default function BuCommandCenterPage() {
                 </div>
               </div>
             )}
+
+            {activeTab === "competitors" && (() => {
+              const ci = (bu as any)?.digital_footprint_metrics?.competitive_intelligence;
+              const competitors = ci?.competitor_matrix || [];
+              const sem = ci?.semantic_intelligence || {};
+              const pillar = ci?.pillar_summary || {};
+              const pitchBullets = pillar?.pitch_bullets || [];
+              const scope = ci?.scope_config || {};
+              return (
+                <div className="space-y-6 mt-6">
+                  <div className="card animate-fade-in">
+                    <div className="flex flex-wrap items-end gap-4">
+                      <div>
+                        <label className="form-label">Radius (m)</label>
+                        <select className="form-input" value={scopeRadius} onChange={(e) => setScopeRadius(Number(e.target.value))}>
+                          <option value={2000}>2 km</option>
+                          <option value={5000}>5 km</option>
+                          <option value={10000}>10 km</option>
+                          <option value={25000}>25 km</option>
+                          <option value={40000}>40 km</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="form-label">Top N rivals</label>
+                        <select className="form-input" value={scopeLimit} onChange={(e) => setScopeLimit(Number(e.target.value))}>
+                          <option value={3}>Top 3</option>
+                          <option value={5}>Top 5</option>
+                          <option value={8}>Top 8</option>
+                          <option value={10}>Top 10</option>
+                        </select>
+                      </div>
+                      <button type="button" onClick={handleRefreshCompetitors} disabled={runningCompetitors} className="btn btn-primary flex items-center gap-2">
+                        {runningCompetitors && <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>}
+                        {runningCompetitors ? "Analyzing..." : "Re-Scope & Analyze Market"}
+                      </button>
+                      {scope?.scope_label && (
+                        <span className="text-xs" style={{ color: "var(--text-muted)" }}>{scope.scope_label}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                      <p className="text-2xl font-bold" style={{ color: "var(--text-primary)" }}>{pillar?.grade ?? "—"}</p>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Pillar Grade ({pillar?.score ?? 0}/100)</p>
+                      {pillar?.market_rank != null && <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>#{pillar.market_rank} of {pillar.total_evaluated}</p>}
+                    </div>
+                    <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                      <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>{bu.google_business_rating ?? "—"}★</p>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Your Rating</p>
+                    </div>
+                    <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                      <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                        {sem?.sentiment_delta != null ? ((sem.sentiment_delta >= 0 ? "+" : "") + Number(sem.sentiment_delta).toFixed(2)) : "—"}
+                      </p>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Sentiment Delta</p>
+                      <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Client {sem?.client_sentiment?.compound ?? 0} vs Market {sem?.market_avg_sentiment?.compound ?? 0}</p>
+                    </div>
+                    <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                      <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+                        {Object.values((bu as any)?.social_profiles || {}).filter((v: any) => v?.verified).length || 0}/5
+                      </p>
+                      <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Verified Socials</p>
+                    </div>
+                  </div>
+
+                  {pitchBullets.length > 0 && (
+                    <div className="card animate-fade-in" style={{ borderColor: "rgba(245,158,11,0.3)", background: "rgba(245,158,11,0.06)" }}>
+                      <h3 className="text-sm font-bold mb-2" style={{ color: "var(--text-primary)" }}>Agency Outreach Talking Points</h3>
+                      <ul className="space-y-1">
+                        {pitchBullets.map((b: string, i: number) => (
+                          <li key={i} className="text-xs flex items-start gap-2" style={{ color: "var(--text-secondary)" }}>
+                            <span className="material-symbols-outlined text-sm mt-0.5" style={{ color: "var(--accent-amber)" }}>campaign</span>
+                            {b}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="card animate-fade-in">
+                      <h3 className="text-sm font-bold mb-3" style={{ color: "var(--text-primary)" }}>Competitor Advantages</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(sem?.competitor_advantages || []).map((p: string, i: number) => (
+                          <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}>{p}</span>
+                        ))}
+                        {(sem?.competitor_advantages || []).length === 0 && <p className="text-xs" style={{ color: "var(--text-muted)" }}>No data yet. Run a scope analysis.</p>}
+                      </div>
+                    </div>
+                    <div className="card animate-fade-in">
+                      <h3 className="text-sm font-bold mb-3" style={{ color: "var(--text-primary)" }}>Market Vulnerabilities (Pitch Wedges)</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {(sem?.competitor_vulnerabilities || []).map((p: string, i: number) => (
+                          <span key={i} className="text-xs px-2.5 py-1 rounded-full" style={{ background: "rgba(244,63,94,0.12)", color: "#f43f5e" }}>{p}</span>
+                        ))}
+                        {(sem?.competitor_vulnerabilities || []).length === 0 && <p className="text-xs" style={{ color: "var(--text-muted)" }}>No data yet. Run a scope analysis.</p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="card animate-slide-up" style={{ padding: 0, overflow: "hidden" }}>
+                    <div className="px-5 py-4 border-b" style={{ borderColor: "var(--border)" }}>
+                      <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: "var(--text-secondary)" }}>Competitor Benchmarking Table</h2>
+                    </div>
+                    {competitors.length === 0 ? (
+                      <div className="py-12 text-center" style={{ color: "var(--text-muted)" }}>
+                        <Icon name="groups" size="lg" />
+                        <p className="mt-2 text-sm">No competitors discovered. Adjust scope and click "Re-Scope & Analyze Market".</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="data-table">
+                          <thead>
+                            <tr>
+                              <th>Rank</th>
+                              <th>Business</th>
+                              <th>Distance</th>
+                              <th>Rating</th>
+                              <th>Reviews</th>
+                              <th>Sentiment</th>
+                              <th>Top Advantage</th>
+                              <th>Primary Vulnerability</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {competitors.map((c: any, idx: number) => (
+                              <tr key={c.place_id || idx}>
+                                <td className="font-mono text-xs">{c.rank ?? idx + 1}</td>
+                                <td><div className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>{c.name}</div></td>
+                                <td className="text-xs">{c.distance_meters ? (c.distance_meters / 1000).toFixed(1) + " km" : "—"}</td>
+                                <td className="font-mono text-xs">{c.rating ?? "—"}</td>
+                                <td className="font-mono text-xs">{c.review_count ?? 0}</td>
+                                <td className="font-mono text-xs">{c.sentiment_compound != null ? Number(c.sentiment_compound).toFixed(2) : "—"}</td>
+                                <td className="text-xs">{c.top_advantage || "—"}</td>
+                                <td className="text-xs">{c.top_vulnerability || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
+
           </>
         )}
 
