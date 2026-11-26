@@ -2333,6 +2333,65 @@ export default function BuCommandCenterPage() {
                     onEditProfile={canEdit ? () => setShowEditModal(true) : undefined}
                   />
 
+                  {/* ── Verified Social Profiles ───────────────────────────── */}
+                  {(() => {
+                    const profiles = (bu as any)?.social_profiles;
+                    const platforms = ["instagram", "facebook", "tiktok", "linkedin", "twitter"];
+                    const hasAny = profiles && Object.keys(profiles).length > 0;
+                    return (
+                      <div className="card animate-fade-in">
+                        <h2 className="text-sm font-bold uppercase tracking-wider mb-3" style={{ color: "var(--text-secondary)" }}>
+                          Verified Social Profiles
+                        </h2>
+                        {hasAny ? (
+                          <div className="space-y-2">
+                            {platforms.map((p) => {
+                              const info = profiles?.[p];
+                              if (!info) return null;
+                              return (
+                                <div
+                                  key={p}
+                                  className="flex items-center justify-between p-2 rounded-lg border"
+                                  style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <span className="text-xs font-semibold capitalize" style={{ color: "var(--text-primary)" }}>
+                                      {p}
+                                    </span>
+                                    {info.url && (
+                                      <a
+                                        href={info.url}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="text-xs truncate"
+                                        style={{ color: "var(--accent-blue)" }}
+                                      >
+                                        {info.handle || info.url}
+                                      </a>
+                                    )}
+                                  </div>
+                                  <span
+                                    className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                                    style={{
+                                      background: info.verified ? "rgba(34,197,94,0.15)" : "rgba(107,114,128,0.15)",
+                                      color: info.verified ? "#22c55e" : "var(--text-muted)",
+                                    }}
+                                  >
+                                    {info.verified ? "Verified" : "Unverified"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            No social profiles verified yet. Click "Verify" above to add one.
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })()}
+
                   {/* ── Digital Footprint Scores ───────────────────────────── */}
                   {(() => {
                     const scores = parseFootprintScores(bu);
@@ -2456,12 +2515,18 @@ export default function BuCommandCenterPage() {
                       <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Sentiment Delta</p>
                       <p className="text-[10px]" style={{ color: "var(--text-muted)" }}>Client {sem?.client_sentiment?.compound ?? 0} vs Market {sem?.market_avg_sentiment?.compound ?? 0}</p>
                     </div>
-                    <div className="p-3 rounded-lg border text-center" style={{ background: "var(--bg-card)", borderColor: "var(--border)" }}>
+                    <button
+                      type="button"
+                      onClick={() => setShowSocialVerifyModal(true)}
+                      className="p-3 rounded-lg border text-center w-full"
+                      style={{ background: "var(--bg-card)", borderColor: "var(--border)", cursor: "pointer" }}
+                    >
                       <p className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
                         {Object.values((bu as any)?.social_profiles || {}).filter((v: any) => v?.verified).length || 0}/5
                       </p>
                       <p className="text-[10px] font-medium" style={{ color: "var(--text-muted)" }}>Verified Socials</p>
-                    </div>
+                      <p className="text-[9px]" style={{ color: "var(--accent-blue)" }}>Click to manage →</p>
+                    </button>
                   </div>
 
                   {pitchBullets.length > 0 && (
@@ -2475,6 +2540,18 @@ export default function BuCommandCenterPage() {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+
+                  {sem?.status === "fallback_insufficient_corpus" && (
+                    <div
+                      className="card animate-fade-in flex items-start gap-3"
+                      style={{ borderColor: "rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.06)" }}
+                    >
+                      <span className="material-symbols-outlined text-base mt-0.5" style={{ color: "#3b82f6" }}>info</span>
+                      <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                        <strong>Local Market Corpus Note:</strong> Public review volume in the selected radius is currently sparse. Displaying regional benchmark insights while review gathering scales up.
+                      </p>
                     </div>
                   )}
 
