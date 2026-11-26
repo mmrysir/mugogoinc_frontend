@@ -753,6 +753,11 @@ export const api = {
     me: () => request<AuthUser>("/auth/me"),
   },
   businessUnitAudit: {
+    runFootprintAudit: (orgId: string, buId: string) =>
+      request<{ status: string; snapshot: any }>(
+        `/organizations/${orgId}/business-units/${buId}/footprint-audit`,
+        { method: "POST" }
+      ),
     updateProfile: (orgId: string, buId: string, body: {
       name?: string;
       website_url?: string;
