@@ -240,6 +240,7 @@ export interface BusinessUnit {
   owner_email: string;
   primary_url?: string | null;
   social_media_links?: string | null;
+  social_profiles?: Record<string, any> | null;
   google_ads_customer_id?: string | null;
   google_search_console_site?: string | null;
   google_business_place_id?: string | null;
