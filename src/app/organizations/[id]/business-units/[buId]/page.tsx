@@ -708,6 +708,196 @@ function GbpVerifyModal({
   );
 }
 
+// ── Social Media Verification Modal ───────────────────────────────────────────
+
+function SocialVerifyModal({
+  bu,
+  onClose,
+  onVerified,
+}: {
+  bu: BusinessUnit;
+  onClose: () => void;
+  onVerified: (updated: BusinessUnit) => void;
+}) {
+  const [platform, setPlatform] = useState("instagram");
+  const [url, setUrl] = useState("");
+  const [preview, setPreview] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const platforms = ["instagram", "facebook", "tiktok", "linkedin"];
+
+  const handlePreview = async () => {
+    if (!url.trim()) {
+      setError("Enter a URL to preview.");
+      return;
+    }
+    setPreviewLoading(true);
+    setError("");
+    setPreview(null);
+    try {
+      const data = await api.businessUnits.previewSocial(bu.id, {
+        platform,
+        url: url.trim(),
+      });
+      setPreview(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Preview failed.");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleConfirm = async () => {
+    if (!preview) return;
+    setConfirmLoading(true);
+    setError("");
+    try {
+      await api.businessUnits.confirmSocial(bu.id, {
+        platform,
+        url: url.trim(),
+        followers: preview.followers ?? undefined,
+      });
+      const fresh = await api.businessUnits.get(bu.id);
+      onVerified(fresh);
+      onClose();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Verification failed.");
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div
+        className="modal-box flex flex-col w-full max-w-2xl max-h-[90vh] overflow-hidden"
+        style={{ padding: 0, maxWidth: 672 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div
+          className="shrink-0 flex items-center justify-between px-6 py-4 border-b"
+          style={{ borderColor: "var(--border)" }}
+        >
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+              Verify Social Media Profile
+            </h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
+              {bu.name}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            className="btn btn-ghost"
+            style={{ padding: "0.35rem 0.75rem", fontSize: "1.25rem", lineHeight: 1 }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 space-y-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="form-label">Platform</label>
+              <select
+                className="form-input"
+                value={platform}
+                onChange={(e) => {
+                  setPlatform(e.target.value);
+                  setPreview(null);
+                  setError("");
+                }}
+              >
+                {platforms.map((p) => (
+                  <option key={p} value={p}>
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="form-label">Profile URL</label>
+              <input
+                className="form-input"
+                value={url}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setPreview(null);
+                  setError("");
+                }}
+                placeholder="https://instagram.com/brand"
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-sm" style={{ color: "#fb7185" }}>{error}</p>}
+
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={previewLoading}
+            className="btn btn-ghost flex items-center gap-2"
+          >
+            {previewLoading && (
+              <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+            )}
+            Preview
+          </button>
+
+          {preview && (
+            <div
+              className="rounded-xl p-4 border space-y-3"
+              style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
+            >
+              <p className="text-sm font-medium" style={{ color: "var(--text-primary)" }}>
+                {preview.active ? "Profile found" : "Profile not accessible"}
+                {preview.followers != null && (
+                  <span style={{ color: "var(--text-muted)" }}> · {preview.followers} followers</span>
+                )}
+              </p>
+              {preview.description_snippet && (
+                <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                  {preview.description_snippet}
+                </p>
+              )}
+              {preview.error && (
+                <p className="text-xs" style={{ color: "#fb7185" }}>{preview.error}</p>
+              )}
+              <button
+                type="button"
+                disabled={confirmLoading || !preview.active}
+                onClick={handleConfirm}
+                className="btn btn-primary flex items-center gap-2"
+              >
+                {confirmLoading && (
+                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                )}
+                Confirm &amp; Lock
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div
+          className="shrink-0 flex items-center justify-end gap-3 px-6 py-4 border-t"
+          style={{ borderColor: "var(--border)", background: "var(--bg-elevated)" }}
+        >
+          <button type="button" onClick={onClose} className="btn btn-ghost">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Lead row ─────────────────────────────────────────────────────────────────
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -1191,6 +1381,7 @@ export default function BuCommandCenterPage() {
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showSocialVerifyModal, setShowSocialVerifyModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [webhookCopied, setWebhookCopied] = useState(false);
   const [discoveringSocials, setDiscoveringSocials] = useState(false);
@@ -2065,6 +2256,39 @@ export default function BuCommandCenterPage() {
                     </div>
                   )}
 
+                  {/* ── Social Media Verification ──────────────────────────── */}
+                  {canEdit && (
+                    <div
+                      className="card animate-fade-in flex items-center justify-between gap-3"
+                      style={{
+                        borderColor: "rgba(139,92,246,0.3)",
+                        background: "rgba(139,92,246,0.06)",
+                      }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base" style={{ color: "#a78bfa" }}>
+                          share
+                        </span>
+                        <div>
+                          <p className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                            Social Media Verification
+                          </p>
+                          <p className="text-xs" style={{ color: "var(--text-muted)" }}>
+                            Verify and lock social profile URLs for auditing.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowSocialVerifyModal(true)}
+                        className="btn btn-ghost"
+                        style={{ padding: "0.35rem 0.75rem", fontSize: "0.8rem" }}
+                      >
+                        <Icon name="verified" size="sm" /> Verify
+                      </button>
+                    </div>
+                  )}
+
                   {/* ── Brand Intelligence & Digital Footprint ─────────────── */}
                   <BrandIntelligenceCard
                     businessUnit={bu}
@@ -2179,6 +2403,19 @@ export default function BuCommandCenterPage() {
               setBu(updated);
               setShowVerifyModal(false);
               setToast("Google Business Profile verified and locked.");
+              fetchData().catch(() => {});
+            }}
+          />
+        )}
+
+        {showSocialVerifyModal && bu && (
+          <SocialVerifyModal
+            bu={bu}
+            onClose={() => setShowSocialVerifyModal(false)}
+            onVerified={(updated) => {
+              setBu(updated);
+              setShowSocialVerifyModal(false);
+              setToast("Social profile verified and locked.");
               fetchData().catch(() => {});
             }}
           />
